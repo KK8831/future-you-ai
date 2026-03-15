@@ -1,0 +1,27 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace = "dev.the_porting_layer.health_connect"
+    compileSdk = rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    // Health Connect Android SDK — required for HealthConnectClient at runtime
+    implementation "androidx.health.connect:connect-client:1.1.0-rc01"
+    implementation project(':capacitor-android')
+}

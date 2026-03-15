@@ -12,6 +12,8 @@ import {
   Settings,
   Info,
   Monitor,
+  Fingerprint,
+  Zap,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -19,7 +21,6 @@ interface CameraHeartRateProps {
   userId?: string;
 }
 
-// Detect if running on a desktop browser (not mobile)
 const isDesktop =
   typeof window !== "undefined" &&
   !/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -33,6 +34,7 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
     error,
     quality,
     isPermissionDenied,
+    fingerDetected,
     startDetection,
     stopDetection,
     videoRef,
@@ -53,16 +55,9 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
         unit: "bpm",
         source: "camera_ppg",
       });
-      toast({
-        title: "Heart rate saved!",
-        description: `${bpm} BPM recorded.`,
-      });
+      toast({ title: "Heart rate saved!", description: `${bpm} BPM recorded.` });
     } catch (e: any) {
-      toast({
-        title: "Save failed",
-        description: e.message,
-        variant: "destructive",
-      });
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -70,11 +65,11 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
 
   return (
     <div className="space-y-4">
-      {/* Video feed (hidden but needed for PPG) */}
+      {/* Hidden video + canvas for PPG processing */}
       <video ref={videoRef} className="hidden" playsInline muted />
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Upfront guidance — shown only when idle */}
+      {/* Pre-measurement guidance */}
       {!isDetecting && !bpm && !error && (
         <div className="space-y-2">
           <div className="flex items-start gap-2 p-3 rounded-lg bg-health-blue/5 border border-health-blue/20">
@@ -85,25 +80,25 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
             </p>
           </div>
 
-          {/* Desktop notice */}
           {isDesktop && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50 border border-border">
               <Monitor className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
               <p className="text-xs text-muted-foreground">
                 <strong className="text-foreground">Best on mobile:</strong>{" "}
                 Place your fingertip over the rear camera for accurate PPG
-                readings. Desktop webcam results may vary.
+                readings. The flashlight must be on — desktop webcams cannot
+                do this.
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Visual feedback */}
-      <div className="flex flex-col items-center">
-        {/* Heart animation */}
+      {/* Visual center */}
+      <div className="flex flex-col items-center gap-3">
+        {/* Pulsing heart */}
         <div
-          className={`w-24 h-24 rounded-full flex items-center justify-center mb-4 transition-all ${
+          className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${
             isDetecting
               ? "bg-health-red/10 animate-pulse"
               : bpm
@@ -112,7 +107,7 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
           }`}
         >
           <Heart
-            className={`w-10 h-10 ${
+            className={`w-10 h-10 transition-colors ${
               isDetecting
                 ? "text-health-red animate-pulse"
                 : bpm
@@ -124,10 +119,8 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
 
         {/* BPM display */}
         {bpm && (
-          <div className="text-center mb-2">
-            <p className="text-4xl font-display font-bold text-foreground">
-              {bpm}
-            </p>
+          <div className="text-center">
+            <p className="text-4xl font-display font-bold text-foreground">{bpm}</p>
             <p className="text-sm text-muted-foreground">BPM</p>
             {quality && (
               <span
@@ -145,6 +138,30 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
           </div>
         )}
 
+        {/* Finger detection status banner */}
+        {isDetecting && (
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              fingerDetected
+                ? "bg-health-green/10 text-health-green border border-health-green/30"
+                : "bg-health-amber/10 text-health-amber border border-health-amber/30 animate-pulse"
+            }`}
+          >
+            <Fingerprint className="w-3 h-3" />
+            {fingerDetected
+              ? "Finger detected ✓"
+              : "Place finger on camera lens"}
+          </div>
+        )}
+
+        {/* Torch indicator */}
+        {isDetecting && !isDesktop && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Zap className="w-3 h-3 text-health-amber" />
+            <span>Flashlight active — keep camera covered</span>
+          </div>
+        )}
+
         {/* Progress bar */}
         {isDetecting && (
           <div className="w-full">
@@ -155,14 +172,14 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
               />
             </div>
             <p className="text-xs text-muted-foreground text-center mt-1">
-              {Math.round(progress)}% — Keep finger on camera
+              {Math.round(progress)}% — Hold steady{fingerDetected ? "" : " (no finger detected)"}
             </p>
           </div>
         )}
 
-        {/* Signal visualization */}
+        {/* Live signal waveform */}
         {isDetecting && signal.length > 10 && (
-          <div className="w-full h-16 mt-3">
+          <div className="w-full h-16 mt-1">
             <svg
               viewBox={`0 0 ${signal.length} 100`}
               className="w-full h-full"
@@ -183,22 +200,21 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
                   .join(" ")}
               />
             </svg>
+            <p className="text-[10px] text-center text-muted-foreground -mt-1">
+              Live PPG signal
+            </p>
           </div>
         )}
       </div>
 
-      {/* Controls */}
+      {/* Action buttons */}
       <div className="flex gap-2">
         {!isDetecting ? (
           <Button className="flex-1" onClick={startDetection}>
             <Play className="w-4 h-4 mr-2" /> Start Measurement
           </Button>
         ) : (
-          <Button
-            className="flex-1"
-            variant="destructive"
-            onClick={stopDetection}
-          >
+          <Button className="flex-1" variant="destructive" onClick={stopDetection}>
             <Square className="w-4 h-4 mr-2" /> Stop
           </Button>
         )}
@@ -217,30 +233,27 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
       {error && (
         <div className="rounded-lg bg-health-red/10 border border-health-red/30 p-3 space-y-2">
           <p className="text-xs text-health-red whitespace-pre-line">{error}</p>
-
           <Button
             size="sm"
             variant="outline"
             className="h-7 text-xs w-full"
             onClick={startDetection}
           >
-            <RotateCcw className="w-3 h-3 mr-1" />
-            Retry
+            <RotateCcw className="w-3 h-3 mr-1" /> Retry
           </Button>
-
           {isPermissionDenied && (
             <div className="space-y-1.5 pt-1">
               <div className="flex items-start gap-2">
                 <Settings className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  <strong className="text-foreground">On Android:</strong>{" "}
+                  <strong className="text-foreground">Android:</strong>{" "}
                   Settings → Apps → FutureMe AI → Permissions → Camera → Allow
                 </p>
               </div>
               <div className="flex items-start gap-2">
                 <Settings className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  <strong className="text-foreground">In Chrome:</strong> Click
+                  <strong className="text-foreground">In Chrome:</strong> Tap
                   the lock icon in the address bar → Camera → Allow
                 </p>
               </div>
@@ -249,12 +262,16 @@ export function CameraHeartRate({ userId }: CameraHeartRateProps) {
         </div>
       )}
 
-      {/* Instructions */}
-      <div className="text-xs text-muted-foreground space-y-1">
-        <p className="font-medium">How to measure:</p>
-        <p>1. Place your fingertip gently over the rear camera</p>
-        <p>2. Keep steady for 15 seconds</p>
-        <p>3. Ensure the camera lens is fully covered</p>
+      {/* How-to instructions */}
+      <div className="p-3 rounded-lg bg-secondary/30 border border-border">
+        <p className="text-xs font-medium text-foreground mb-2">📷 How to measure correctly:</p>
+        <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+          <li>Place your <strong>fingertip flat</strong> over the rear camera lens</li>
+          <li>Apply <strong>gentle but firm pressure</strong> — not too hard</li>
+          <li>Ensure the flashlight shines through your fingertip (red glow)</li>
+          <li>Hold <strong>completely still</strong> for 20 seconds</li>
+          <li>Wait for the <em>"Finger detected ✓"</em> indicator to appear</li>
+        </ol>
       </div>
     </div>
   );

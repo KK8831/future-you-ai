@@ -1,34 +1,32 @@
-import { useState } from "react";
-import {
-  Smartphone,
-  RefreshCw,
-  Check,
-  Loader2,
-  ExternalLink,
-  AlertCircle,
-} from "lucide-react";
+﻿import { useState } from "react";
+import { RefreshCw, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Capacitor } from "@capacitor/core";
 
-interface GoogleFitConnectProps {
-  userId?: string;
+export interface WearableEntry {
+  user_id: string;
+  data_type: string;
+  value: number;
+  unit: string;
+  source: string;
 }
 
-const HEALTH_CONNECT_PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata";
+interface GoogleFitConnectProps {
+  userId?: string;
+  onDataSynced?: (entries: WearableEntry[]) => void;
+}
 
 const DATA_CATEGORIES = [
   { label: "Steps", icon: "👟", desc: "Daily step count" },
-  { label: "Heart Rate", icon: "❤️", desc: "Continuous BPM" },
-  { label: "Sleep", icon: "😴", desc: "Duration & stages" },
-  { label: "Calories", icon: "🔥", desc: "Calories burned" },
-  { label: "Distance", icon: "📏", desc: "Walking/running km" },
-  { label: "Activity", icon: "🏃", desc: "Exercise sessions" },
+  { label: "Calories", icon: "🔥", desc: "Active calories burned" },
+  { label: "Distance", icon: "📍", desc: "Distance traveled" },
+  { label: "Sleep", icon: "😴", desc: "Sleep duration" },
+  { label: "Weight", icon: "⚖️", desc: "Body weight" },
 ];
 
-export function GoogleFitConnect({ userId }: GoogleFitConnectProps) {
+export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps) {
   const [syncing, setSyncing] = useState(false);
   const [synced, setSynced] = useState(false);
   const [healthConnectMissing, setHealthConnectMissing] = useState(false);
@@ -37,274 +35,82 @@ export function GoogleFitConnect({ userId }: GoogleFitConnectProps) {
 
   const syncHealthData = async () => {
     if (!userId) return;
-
     if (!isNative) {
-      toast({
-        title: "Android Only",
-        description:
-          "Health Connect sync is only available in the Android app. Install the app from the Play Store to use this feature.",
-        variant: "destructive",
-      });
+      toast({ title: "Android Only", description: "Health Connect sync is only available in the Android app.", variant: "destructive" });
       return;
     }
-
     setSyncing(true);
     setHealthConnectMissing(false);
-
     let HealthConnect: any;
     try {
       const mod = await import("capacitor-health-connect");
-      HealthConnect = mod.HealthConnect;
-    } catch (importError: any) {
+      HealthConnect = mod?.HealthConnect ?? (mod as any)?.default;
+      if (!HealthConnect) throw new Error("Plugin not found");
+    } catch {
       setSyncing(false);
-      toast({
-        title: "Plugin Error",
-        description:
-          "Health Connect plugin could not be loaded. Please reinstall the app.",
-        variant: "destructive",
-      });
+      toast({ title: "Plugin Error", description: "Health Connect plugin could not be loaded.", variant: "destructive" });
       return;
     }
-
     try {
-      const availability = await HealthConnect.checkAvailability();
-
-      if (availability.availability !== "Available") {
+      const availabilityResult = await HealthConnect.checkAvailability();
+      if (availabilityResult?.availability !== "Available") {
         setHealthConnectMissing(true);
-        toast({
-          title: "Health Connect Not Installed",
-          description:
-            "Please install Health Connect from the Play Store to sync fitness data.",
-          variant: "destructive",
-        });
+        toast({ title: "Health Connect Not Available", description: "Please install Health Connect from the Play Store.", variant: "destructive" });
         setSyncing(false);
         return;
       }
-
       await HealthConnect.requestHealthPermissions({
-        read: [
-          "Steps",
-          "HeartRate",
-          "SleepSession",
-          "Distance",
-          "ActiveCaloriesBurned",
-        ],
+        read: ["Steps", "ActiveCaloriesBurned", "Distance", "SleepSession", "Weight"],
         write: [],
       });
-
       const now = new Date();
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const timeFilter = {
-        startTime: yesterday.toISOString(),
-        endTime: now.toISOString(),
+      const timeRangeFilter = { type: "between", startTime: yesterday, endTime: now };
+      const safeRead = async (type: string) => {
+        try { const r = await HealthConnect.readRecords({ type, timeRangeFilter }); return r?.records ?? []; }
+        catch { return []; }
       };
-
-      const [stepsData, heartRateData, sleepData, distanceData, caloriesData] =
-        await Promise.all([
-          HealthConnect.readRecords({
-            type: "Steps",
-            timeRangeFilter: timeFilter,
-          }),
-          HealthConnect.readRecords({
-            type: "HeartRate",
-            timeRangeFilter: timeFilter,
-          }),
-          HealthConnect.readRecords({
-            type: "SleepSession",
-            timeRangeFilter: timeFilter,
-          }),
-          HealthConnect.readRecords({
-            type: "Distance",
-            timeRangeFilter: timeFilter,
-          }),
-          HealthConnect.readRecords({
-            type: "ActiveCaloriesBurned",
-            timeRangeFilter: timeFilter,
-          }),
-        ]);
-
-      const wearableEntries: any[] = [];
-
-      const totalSteps = stepsData.records.reduce(
-        (sum: number, r: any) => sum + r.count,
-        0
-      );
-      if (totalSteps > 0)
-        wearableEntries.push({
-          user_id: userId,
-          data_type: "steps",
-          value: totalSteps,
-          unit: "count",
-          source: "health_connect",
-        });
-
-      if (heartRateData.records.length > 0) {
-        const avgHR =
-          heartRateData.records.reduce(
-            (sum: number, r: any) => sum + (r.samples[0]?.beatsPerMinute ?? 0),
-            0
-          ) / heartRateData.records.length;
-        wearableEntries.push({
-          user_id: userId,
-          data_type: "heart_rate",
-          value: Math.round(avgHR),
-          unit: "bpm",
-          source: "health_connect",
-        });
-      }
-
-      const totalDistance = distanceData.records.reduce(
-        (sum: number, r: any) => sum + r.distance.inMeters,
-        0
-      );
-      if (totalDistance > 0)
-        wearableEntries.push({
-          user_id: userId,
-          data_type: "distance",
-          value: parseFloat((totalDistance / 1000).toFixed(2)),
-          unit: "km",
-          source: "health_connect",
-        });
-
-      const totalCalories = caloriesData.records.reduce(
-        (sum: number, r: any) => sum + r.energy.inKilocalories,
-        0
-      );
-      if (totalCalories > 0)
-        wearableEntries.push({
-          user_id: userId,
-          data_type: "calories_burned",
-          value: Math.round(totalCalories),
-          unit: "kcal",
-          source: "health_connect",
-        });
-
-      if (sleepData.records.length > 0) {
-        const s = sleepData.records[0] as any;
-        const hours = parseFloat(
-          (
-            (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()) /
-            3600000
-          ).toFixed(1)
-        );
-        wearableEntries.push({
-          user_id: userId,
-          data_type: "sleep_hours",
-          value: hours,
-          unit: "hours",
-          source: "health_connect",
-        });
-      }
-
-      if (wearableEntries.length > 0) {
-        await supabase.from("wearable_data").insert(wearableEntries);
-      }
-
+      const [stepsR, calR, distR, sleepR, weightR] = await Promise.all([
+        safeRead("Steps"), safeRead("ActiveCaloriesBurned"), safeRead("Distance"), safeRead("SleepSession"), safeRead("Weight"),
+      ]);
+      const entries: WearableEntry[] = [];
+      const totalSteps = stepsR.reduce((s: number, r: any) => s + (r?.count ?? 0), 0);
+      if (totalSteps > 0) entries.push({ user_id: userId, data_type: "steps", value: totalSteps, unit: "count", source: "health_connect" });
+      const totalCal = calR.reduce((s: number, r: any) => s + (r?.energy?.value ?? 0), 0);
+      if (totalCal > 0) entries.push({ user_id: userId, data_type: "calories_burned", value: Math.round(totalCal), unit: "kcal", source: "health_connect" });
+      const totalDist = distR.reduce((s: number, r: any) => s + ((r?.distance?.value ?? 0) / 1000), 0);
+      if (totalDist > 0) entries.push({ user_id: userId, data_type: "distance", value: parseFloat(totalDist.toFixed(2)), unit: "km", source: "health_connect" });
+      const totalSleep = sleepR.reduce((s: number, r: any) => r?.startTime && r?.endTime ? s + (new Date(r.endTime).getTime() - new Date(r.startTime).getTime()) : s, 0);
+      if (totalSleep > 0) entries.push({ user_id: userId, data_type: "sleep_duration", value: parseFloat((totalSleep / 3600000).toFixed(1)), unit: "hours", source: "health_connect" });
+      if (weightR.length > 0 && weightR[weightR.length-1]?.weight?.value) entries.push({ user_id: userId, data_type: "weight", value: parseFloat(weightR[weightR.length-1].weight.value.toFixed(1)), unit: "kg", source: "health_connect" });
+      if (entries.length > 0) { const { error } = await supabase.from("wearable_data").insert(entries); if (error) throw error; }
+      onDataSynced?.(entries);
       setSynced(true);
-      setTimeout(() => setSynced(false), 3000);
-      toast({
-        title: "Sync complete!",
-        description: `${wearableEntries.length} health metric${wearableEntries.length !== 1 ? "s" : ""} synced.`,
-      });
+      setTimeout(() => setSynced(false), 4000);
+      toast({ title: "Sync complete! 🎉", description: entries.length > 0 ? `${entries.length} metrics synced.` : "No new data found for the last 24 hours." });
     } catch (error: any) {
-      const message = error?.message?.includes("PERMISSION")
-        ? "Permission was denied. Please grant Health Connect access and try again."
-        : error?.message ?? "An unexpected error occurred.";
-      toast({
-        title: "Sync Failed",
-        description: message,
-        variant: "destructive",
-      });
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const openPlayStore = () => {
-    window.open(HEALTH_CONNECT_PLAY_STORE_URL, "_blank");
+      toast({ title: "Sync Failed", description: error?.message ?? "Unexpected error.", variant: "destructive" });
+    } finally { setSyncing(false); }
   };
 
   return (
     <div className="space-y-4">
-      {/* Data categories grid */}
       <div className="grid grid-cols-2 gap-2">
         {DATA_CATEGORIES.map((item) => (
-          <div
-            key={item.label}
-            className="p-3 rounded-lg bg-secondary/20 border border-border flex items-center gap-2.5"
-          >
-            <span className="text-xl leading-none">{item.icon}</span>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground leading-tight">
-                {item.label}
-              </p>
-              <p className="text-[11px] text-muted-foreground truncate">
-                {item.desc}
-              </p>
-            </div>
+          <div key={item.label} className="p-3 rounded-lg bg-secondary/20 border border-border flex items-center gap-2.5">
+            <span className="text-xl">{item.icon}</span>
+            <div><p className="text-sm font-medium">{item.label}</p><p className="text-xs text-muted-foreground">{item.desc}</p></div>
           </div>
         ))}
       </div>
-
-      {/* Web/PWA notice */}
-      {!isNative && (
-        <div className="flex items-start gap-2.5 p-3 rounded-lg bg-health-amber/10 border border-health-amber/30">
-          <AlertCircle className="w-4 h-4 text-health-amber mt-0.5 shrink-0" />
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-foreground">
-              Android App Required
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Health Connect sync requires the native{" "}
-              <strong>Android app</strong>. This feature is unavailable in the
-              browser.
-            </p>
-            <button
-              onClick={openPlayStore}
-              className="inline-flex items-center gap-1 text-xs text-health-amber hover:underline font-medium mt-0.5"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Get the Android App
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Play Store install prompt */}
       {healthConnectMissing && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-health-red/10 border border-health-red/30">
-          <AlertCircle className="w-4 h-4 text-health-red mt-0.5 shrink-0" />
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">
-              <strong>Health Connect</strong> is not installed on your device.
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs"
-              onClick={openPlayStore}
-            >
-              <ExternalLink className="w-3 h-3 mr-1" />
-              Install Health Connect
-            </Button>
-          </div>
+        <div className="p-3 rounded-lg border border-red-400 bg-red-50/10">
+          <p className="text-xs text-red-400 mb-2">Health Connect is not installed.</p>
+          <Button size="sm" variant="destructive" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata", "_blank")}>Install Health Connect</Button>
         </div>
       )}
-
-      <Button className="w-full" onClick={syncHealthData} disabled={syncing}>
-        {synced ? (
-          <span className="flex items-center gap-2">
-            <Check className="w-4 h-4" /> Synced!
-          </span>
-        ) : syncing ? (
-          <span className="flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" /> Syncing...
-          </span>
-        ) : (
-          <span className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" /> Sync Health Data
-          </span>
-        )}
+      <Button onClick={syncHealthData} disabled={syncing} className="w-full">
+        {synced ? <><Check className="w-4 h-4 mr-2" />Synced</> : syncing ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Syncing...</> : <><RefreshCw className="w-4 h-4 mr-2" />Sync Health Data</>}
       </Button>
     </div>
   );
