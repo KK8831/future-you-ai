@@ -1,9 +1,14 @@
 ﻿import { useState } from "react";
-import { RefreshCw, Check, Loader2 } from "lucide-react";
+import { RefreshCw, Check, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Capacitor } from "@capacitor/core";
+
+interface GoogleFitConnectProps {
+  userId?: string;
+  onDataSynced?: (entries: WearableEntry[]) => void;
+}
 
 export interface WearableEntry {
   user_id: string;
@@ -11,11 +16,6 @@ export interface WearableEntry {
   value: number;
   unit: string;
   source: string;
-}
-
-interface GoogleFitConnectProps {
-  userId?: string;
-  onDataSynced?: (entries: WearableEntry[]) => void;
 }
 
 const DATA_CATEGORIES = [
@@ -33,12 +33,42 @@ export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps
   const { toast } = useToast();
   const isNative = Capacitor.isNativePlatform();
 
+  // Show web message if not on Android app
+  if (!isNative) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-2">
+          {DATA_CATEGORIES.map((item) => (
+            <div key={item.label} className="p-3 rounded-lg bg-secondary/20 border border-border flex items-center gap-2.5 opacity-50">
+              <span className="text-xl">{item.icon}</span>
+              <div>
+                <p className="text-sm font-medium">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="p-4 rounded-lg border border-border bg-secondary/10 text-center space-y-3">
+          <Smartphone className="w-10 h-10 mx-auto text-muted-foreground" />
+          <p className="text-sm font-medium">Available on Android App</p>
+          <p className="text-xs text-muted-foreground">
+            Health Connect sync works on the native Android app. Download it to sync your fitness data automatically.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => toast({ title: "Android App", description: "Install the APK from your developer to use Health Connect sync." })}
+          >
+            <Smartphone className="w-4 h-4 mr-2" /> Get Android App
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const syncHealthData = async () => {
     if (!userId) return;
-    if (!isNative) {
-      toast({ title: "Android Only", description: "Health Connect sync is only available in the Android app.", variant: "destructive" });
-      return;
-    }
     setSyncing(true);
     setHealthConnectMissing(false);
     let HealthConnect: any;
@@ -82,7 +112,7 @@ export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps
       if (totalDist > 0) entries.push({ user_id: userId, data_type: "distance", value: parseFloat(totalDist.toFixed(2)), unit: "km", source: "health_connect" });
       const totalSleep = sleepR.reduce((s: number, r: any) => r?.startTime && r?.endTime ? s + (new Date(r.endTime).getTime() - new Date(r.startTime).getTime()) : s, 0);
       if (totalSleep > 0) entries.push({ user_id: userId, data_type: "sleep_duration", value: parseFloat((totalSleep / 3600000).toFixed(1)), unit: "hours", source: "health_connect" });
-      if (weightR.length > 0 && weightR[weightR.length-1]?.weight?.value) entries.push({ user_id: userId, data_type: "weight", value: parseFloat(weightR[weightR.length-1].weight.value.toFixed(1)), unit: "kg", source: "health_connect" });
+      if (weightR.length > 0 && weightR[weightR.length - 1]?.weight?.value) entries.push({ user_id: userId, data_type: "weight", value: parseFloat(weightR[weightR.length - 1].weight.value.toFixed(1)), unit: "kg", source: "health_connect" });
       if (entries.length > 0) { const { error } = await supabase.from("wearable_data").insert(entries); if (error) throw error; }
       onDataSynced?.(entries);
       setSynced(true);
@@ -99,14 +129,19 @@ export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps
         {DATA_CATEGORIES.map((item) => (
           <div key={item.label} className="p-3 rounded-lg bg-secondary/20 border border-border flex items-center gap-2.5">
             <span className="text-xl">{item.icon}</span>
-            <div><p className="text-sm font-medium">{item.label}</p><p className="text-xs text-muted-foreground">{item.desc}</p></div>
+            <div>
+              <p className="text-sm font-medium">{item.label}</p>
+              <p className="text-xs text-muted-foreground">{item.desc}</p>
+            </div>
           </div>
         ))}
       </div>
       {healthConnectMissing && (
         <div className="p-3 rounded-lg border border-red-400 bg-red-50/10">
           <p className="text-xs text-red-400 mb-2">Health Connect is not installed.</p>
-          <Button size="sm" variant="destructive" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata", "_blank")}>Install Health Connect</Button>
+          <Button size="sm" variant="destructive" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata", "_blank")}>
+            Install Health Connect
+          </Button>
         </div>
       )}
       <Button onClick={syncHealthData} disabled={syncing} className="w-full">
