@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { FloatingChatbot } from "./FloatingChatbot";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -275,6 +276,9 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
         <div className="p-4 lg:p-6">{children}</div>
       </main>
+
+      {/* Global Chatbot Widget */}
+      <FloatingChatbot />
     </div>
   );
 }

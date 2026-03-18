@@ -8,7 +8,8 @@ import { LifestyleEntry } from "@/types/lifestyle";
 import { calculateMedicalRisks, HealthProfile, calculateBMI } from "@/lib/medical-calculators";
 import { detectAnomalies, detectBehavioralDrift, monteCarloSimulation, AnomalyPoint, DriftResult } from "@/lib/advanced-analytics";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, Brain, RefreshCw, Sparkles } from "lucide-react";
+import { Bot, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, Brain, RefreshCw, Sparkles, Download } from "lucide-react";
+import { usePdfExport } from "@/hooks/usePdfExport";
 
 interface AgentResult {
   agent: string;
@@ -18,6 +19,7 @@ interface AgentResult {
 
 const AIInsights = () => {
   const [user, setUser] = useState<User | null>(null);
+  const { exportToPdf, isExporting } = usePdfExport({ filename: "AI_Health_Intelligence_Report.pdf" });
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LifestyleEntry[]>([]);
   const [profile, setProfile] = useState<HealthProfile>({ age: 30, sex: "unspecified", heightCm: 170, weightKg: 70 });
@@ -134,7 +136,7 @@ const AIInsights = () => {
 
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-8 animate-fade-in">
+      <div className="space-y-8 animate-fade-in" id="ai-insights-report">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
@@ -145,23 +147,42 @@ const AIInsights = () => {
               Multi-agent AI analysis with anomaly detection & behavioral drift monitoring
             </p>
           </div>
-          <Button
-            variant="hero"
-            onClick={runFullAnalysis}
-            disabled={analyzing || !metrics}
-          >
-            {analyzing ? (
-              <span className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Agents Running...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                Run Full Analysis
-              </span>
-            )}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="outline"
+              onClick={() => exportToPdf("ai-insights-report")}
+              disabled={isExporting || analyzing || (!anomalies.length && !driftResults.length && !agentResults.length)}
+            >
+              {isExporting ? (
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Exporting...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  Download PDF
+                </span>
+              )}
+            </Button>
+            <Button
+              variant="hero"
+              onClick={runFullAnalysis}
+              disabled={analyzing || !metrics}
+            >
+              {analyzing ? (
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Agents Running...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Run Full Analysis
+                </span>
+              )}
+            </Button>
+          </div>
         </div>
 
         {entries.length < 3 && (

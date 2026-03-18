@@ -10,7 +10,9 @@ import {
   FileImage,
   AlertTriangle,
   ImageIcon,
+  Download,
 } from "lucide-react";
+import { usePdfExport } from "@/hooks/usePdfExport";
 
 interface MedicalReportOCRProps {
   userId?: string;
@@ -45,6 +47,7 @@ export function MedicalReportOCR({ userId }: MedicalReportOCRProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { exportToPdf, isExporting } = usePdfExport({ filename: "Medical_Report_OCR.pdf" });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -297,7 +300,7 @@ export function MedicalReportOCR({ userId }: MedicalReportOCRProps) {
 
       {/* Results */}
       {result && (
-        <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
+        <div className="p-4 rounded-lg bg-accent/5 border border-accent/20" id="ocr-results">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-accent font-medium">
               {result.report_type || "Medical Report"} — Confidence:{" "}
@@ -338,26 +341,43 @@ export function MedicalReportOCR({ userId }: MedicalReportOCRProps) {
             <p className="text-xs text-muted-foreground mt-2">{result.notes}</p>
           )}
 
-          <Button
-            size="sm"
-            className="mt-3 w-full"
-            onClick={saveResults}
-            disabled={saving}
-          >
-            {saved ? (
-              <span className="flex items-center gap-1">
-                <Check className="w-3 h-3" /> Saved!
-              </span>
-            ) : saving ? (
-              <span className="flex items-center gap-1">
-                <Loader2 className="w-3 h-3 animate-spin" /> Saving...
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <Upload className="w-3 h-3" /> Save All Values
-              </span>
-            )}
-          </Button>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => exportToPdf("ocr-results")}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> PDF...
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <Download className="w-3 h-3" /> Save PDF
+                </span>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              onClick={saveResults}
+              disabled={saving}
+            >
+              {saved ? (
+                <span className="flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Saved!
+                </span>
+              ) : saving ? (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <Upload className="w-3 h-3" /> Save Values
+                </span>
+              )}
+            </Button>
+          </div>
         </div>
       )}
     </div>

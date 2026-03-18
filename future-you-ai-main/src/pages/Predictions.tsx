@@ -8,10 +8,12 @@ import { MedicalRiskScores } from "@/components/dashboard/MedicalRiskScores";
 import { Recommendations } from "@/components/dashboard/Recommendations";
 import { LifestyleEntry } from "@/types/lifestyle";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Shield, Info, ClipboardPlus, Brain, FlaskConical } from "lucide-react";
+import { AlertTriangle, Shield, Info, ClipboardPlus, Brain, FlaskConical, Download, RefreshCw } from "lucide-react";
+import { usePdfExport } from "@/hooks/usePdfExport";
 
 const Predictions = () => {
   const [user, setUser] = useState<User | null>(null);
+  const { exportToPdf, isExporting } = usePdfExport({ filename: "Health_Predictions_Report.pdf" });
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LifestyleEntry[]>([]);
@@ -71,12 +73,31 @@ const Predictions = () => {
 
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-8 animate-fade-in">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Health Predictions</h1>
-          <p className="text-muted-foreground mt-1">
-            Validated epidemiological risk scores + AI-powered analysis
-          </p>
+      <div className="space-y-8 animate-fade-in" id="predictions-report">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-foreground">Health Predictions</h1>
+            <p className="text-muted-foreground mt-1">
+              Validated epidemiological risk scores + AI-powered analysis
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => exportToPdf("predictions-report")}
+            disabled={isExporting || entries.length < 3}
+          >
+            {isExporting ? (
+              <span className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Exporting...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Download PDF
+              </span>
+            )}
+          </Button>
         </div>
 
         {entries.length < 3 ? (
