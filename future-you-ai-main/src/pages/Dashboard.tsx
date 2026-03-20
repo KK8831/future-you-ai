@@ -175,7 +175,7 @@ const Dashboard = () => {
         <div className="grid lg:grid-cols-[1fr_320px] gap-4 mt-4">
           <div className="space-y-4">
             <div className="grid md:grid-cols-[1fr_280px] gap-4">
-              <DigitalTwinOverview entries={entries} />
+              <DigitalTwinOverview entries={entries} wearableData={wearableData} />
               <div className="space-y-4">
                 <PatientProfileCard user={user} />
                 <HealthIndexBar entries={entries} />

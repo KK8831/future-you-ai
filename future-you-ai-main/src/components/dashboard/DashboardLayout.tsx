@@ -30,14 +30,14 @@ interface DashboardLayoutProps {
 }
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Log Entry", icon: ClipboardPlus, href: "/log-entry" },
-  { label: "AI Insights", icon: Bot, href: "/ai-insights" },
-  { label: "Smart Collect", icon: Smartphone, href: "/smart-collect" },
-  { label: "Simulations", icon: TrendingUp, href: "/simulations" },
-  { label: "Predictions", icon: Target, href: "/predictions" },
-  { label: "Profile", icon: UserCircle, href: "/profile" },
-  { label: "Audit Log", icon: Shield, href: "/audit" },
+  { label: "Dashboard",    icon: LayoutDashboard, href: "/dashboard" },
+  { label: "Profile",      icon: UserCircle,      href: "/profile" },
+  { label: "Log Entry",    icon: ClipboardPlus,   href: "/log-entry" },
+  { label: "Smart Collect",icon: Smartphone,      href: "/smart-collect" },
+  { label: "Predictions",  icon: Target,          href: "/predictions" },
+  { label: "Simulations",  icon: TrendingUp,      href: "/simulations" },
+  { label: "AI Insights",  icon: Bot,             href: "/ai-insights" },
+  { label: "Audit Log",    icon: Shield,          href: "/audit" },
 ];
 
 export function DashboardLayout({ children, user }: DashboardLayoutProps) {

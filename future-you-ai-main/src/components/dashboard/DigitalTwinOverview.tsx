@@ -1,30 +1,50 @@
 import { useMemo } from "react";
-import { TrendingUp, TrendingDown, Minus, Brain, Heart, Footprints, Zap } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Brain, Heart, Footprints, Zap, Smartphone } from "lucide-react";
 import { LifestyleEntry, DigitalTwinState } from "@/types/lifestyle";
+import { WearableMetric } from "@/pages/Dashboard";
 
 interface DigitalTwinOverviewProps {
   entries: LifestyleEntry[];
+  wearableData?: WearableMetric[];
 }
 
-function calculateTwinState(entries: LifestyleEntry[]): DigitalTwinState {
-  if (entries.length === 0) {
+function calculateTwinState(entries: LifestyleEntry[], wearableData: WearableMetric[] = []): DigitalTwinState & { heartRate?: number } {
+  const heartRate = wearableData.find(d => d.data_type === "heart_rate")?.value;
+  const wearableSteps = wearableData.find(d => d.data_type === "steps")?.value;
+
+  if (entries.length === 0 && !wearableSteps) {
     return {
       averageActivity: 0, averageSleep: 0, averageDiet: 0, averageStress: 0, averageScreenTime: 0,
       trendDirection: "stable", healthScore: 50, lastUpdated: new Date().toISOString(),
+      heartRate
     };
   }
+
   const recentEntries = entries.slice(0, Math.min(7, entries.length));
-  const avgActivity = recentEntries.reduce((s, e) => s + e.physical_activity_minutes, 0) / recentEntries.length;
-  const avgSleep = recentEntries.reduce((s, e) => s + e.sleep_hours, 0) / recentEntries.length;
-  const avgDiet = recentEntries.reduce((s, e) => s + e.diet_quality_score, 0) / recentEntries.length;
-  const avgStress = recentEntries.reduce((s, e) => s + e.stress_level, 0) / recentEntries.length;
-  const avgScreen = recentEntries.reduce((s, e) => s + e.screen_time_hours, 0) / recentEntries.length;
-  const activityScore = Math.min(avgActivity / 60, 1) * 25;
+  
+  // Use wearable steps to supplement activity if available
+  const activityFromSteps = wearableSteps ? Math.round(wearableSteps / 100) : null;
+  const avgActivity = recentEntries.length > 0
+    ? recentEntries.reduce((s, e) => s + e.physical_activity_minutes, 0) / recentEntries.length
+    : (activityFromSteps ?? 0);
+  
+  const effectiveActivity = activityFromSteps ? Math.max(avgActivity, activityFromSteps) : avgActivity;
+  
+  const avgSleep = recentEntries.length > 0 ? recentEntries.reduce((s, e) => s + e.sleep_hours, 0) / recentEntries.length : 7;
+  const avgDiet = recentEntries.length > 0 ? recentEntries.reduce((s, e) => s + e.diet_quality_score, 0) / recentEntries.length : 5;
+  const avgStress = recentEntries.length > 0 ? recentEntries.reduce((s, e) => s + e.stress_level, 0) / recentEntries.length : 5;
+  const avgScreen = recentEntries.length > 0 ? recentEntries.reduce((s, e) => s + e.screen_time_hours, 0) / recentEntries.length : 4;
+
+  const activityScore = Math.min(effectiveActivity / 60, 1) * 25;
   const sleepScore = Math.min(avgSleep / 8, 1) * 25;
   const dietScore = (avgDiet / 10) * 20;
   const stressScore = ((10 - avgStress) / 10) * 15;
   const screenScore = Math.max(1 - avgScreen / 10, 0) * 15;
-  const healthScore = Math.round(activityScore + sleepScore + dietScore + stressScore + screenScore);
+  
+  // Factor in HR penalty
+  const hrPenalty = heartRate && heartRate > 85 ? -Math.min((heartRate - 85) * 0.5, 10) : 0;
+  
+  const healthScore = Math.max(0, Math.round(activityScore + sleepScore + dietScore + stressScore + screenScore + hrPenalty));
   let trendDirection: "improving" | "stable" | "declining" = "stable";
   if (entries.length >= 14) {
     const recentWeek = entries.slice(0, 7);
@@ -35,26 +55,29 @@ function calculateTwinState(entries: LifestyleEntry[]): DigitalTwinState {
     else if (recentScore < prevScore - 0.5) trendDirection = "declining";
   }
   return {
-    averageActivity: Math.round(avgActivity), averageSleep: Number(avgSleep.toFixed(1)),
+    averageActivity: Math.round(effectiveActivity), averageSleep: Number(avgSleep.toFixed(1)),
     averageDiet: Number(avgDiet.toFixed(1)), averageStress: Number(avgStress.toFixed(1)),
     averageScreenTime: Number(avgScreen.toFixed(1)), trendDirection, healthScore,
     lastUpdated: entries[0]?.entry_date || new Date().toISOString(),
+    heartRate
   };
 }
 
 // Body zone highlights based on health metrics
-function getBodyHighlights(state: DigitalTwinState) {
+function getBodyHighlights(state: DigitalTwinState & { heartRate?: number }) {
   const highlights: { zone: string; color: string; label: string }[] = [];
   if (state.averageSleep < 6) highlights.push({ zone: "brain", color: "text-health-amber", label: "Sleep deficit" });
   if (state.averageStress > 6) highlights.push({ zone: "chest", color: "text-health-red", label: "High stress" });
   if (state.averageActivity < 20) highlights.push({ zone: "legs", color: "text-health-amber", label: "Low activity" });
   if (state.averageDiet < 5) highlights.push({ zone: "stomach", color: "text-health-red", label: "Poor diet" });
+  if (state.heartRate && state.heartRate > 85) highlights.push({ zone: "heart", color: "text-health-red", label: `High HR (${state.heartRate})` });
   return highlights;
 }
 
-export function DigitalTwinOverview({ entries }: DigitalTwinOverviewProps) {
-  const twinState = useMemo(() => calculateTwinState(entries), [entries]);
+export function DigitalTwinOverview({ entries, wearableData = [] }: DigitalTwinOverviewProps) {
+  const twinState = useMemo(() => calculateTwinState(entries, wearableData), [entries, wearableData]);
   const highlights = useMemo(() => getBodyHighlights(twinState), [twinState]);
+  const hasWearable = wearableData.length > 0;
 
   const TrendIcon = twinState.trendDirection === "improving" ? TrendingUp : twinState.trendDirection === "declining" ? TrendingDown : Minus;
   const trendColor = twinState.trendDirection === "improving" ? "text-health-green" : twinState.trendDirection === "declining" ? "text-health-red" : "text-muted-foreground";
@@ -75,6 +98,7 @@ export function DigitalTwinOverview({ entries }: DigitalTwinOverviewProps) {
             </p>
           </div>
           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary text-xs font-medium ${trendColor}`}>
+            {hasWearable && <Smartphone className="w-3 h-3 text-health-green" />}
             <TrendIcon className="w-3 h-3" />
             {twinState.trendDirection === "improving" ? "Improving" : twinState.trendDirection === "declining" ? "Declining" : "Stable"}
           </div>
@@ -104,8 +128,11 @@ export function DigitalTwinOverview({ entries }: DigitalTwinOverviewProps) {
               {highlights.some(h => h.zone === "brain") && (
                 <circle cx="80" cy="28" r="18" className="fill-health-amber/20 animate-pulse" />
               )}
-              {highlights.some(h => h.zone === "chest") && (
+              {highlights.some(h => h.zone === "chest" || h.zone === "heart") && (
                 <circle cx="80" cy="110" r="22" className="fill-health-red/20 animate-pulse" />
+              )}
+              {highlights.some(h => h.zone === "heart") && (
+                <circle cx="90" cy="105" r="8" className="fill-health-red/40 animate-pulse" />
               )}
               {highlights.some(h => h.zone === "stomach") && (
                 <circle cx="80" cy="150" r="18" className="fill-health-red/20 animate-pulse" />
