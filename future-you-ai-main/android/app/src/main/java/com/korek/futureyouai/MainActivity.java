@@ -6,6 +6,7 @@ import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.Intent;
 import android.provider.Settings;
+import android.os.Bundle;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -71,7 +72,7 @@ class ScreenTimePlugin extends Plugin {
 
 public class MainActivity extends BridgeActivity {
     @Override
-    public void onCreate(android.os.Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ScreenTimePlugin.class);
         super.onCreate(savedInstanceState);
     }

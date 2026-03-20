@@ -5,7 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 
-const ScreenTime = registerPlugin<any>("ScreenTime");
+interface ScreenTimePlugin {
+  getScreenTime(): Promise<{ screenTimeHours: number; permissionRequired: boolean }>;
+  requestPermission(): Promise<void>;
+}
+
+const ScreenTimePlugin = registerPlugin<ScreenTimePlugin>("ScreenTime");
 
 interface ScreenTimeCollectProps {
   userId?: string;
@@ -23,7 +28,9 @@ export function ScreenTimeCollect({ userId }: ScreenTimeCollectProps) {
       <div className="p-4 rounded-lg border border-border bg-secondary/10 text-center space-y-2">
         <Monitor className="w-8 h-8 mx-auto text-muted-foreground" />
         <p className="text-sm font-medium">Available on Android App only</p>
-        <p className="text-xs text-muted-foreground">Screen time tracking requires the native Android app.</p>
+        <p className="text-xs text-muted-foreground">
+          Screen time tracking requires the native Android app.
+        </p>
       </div>
     );
   }
@@ -31,15 +38,15 @@ export function ScreenTimeCollect({ userId }: ScreenTimeCollectProps) {
   const fetchScreenTime = async () => {
     setLoading(true);
     try {
-      const result = await ScreenTime.getScreenTime();
+      const result = await ScreenTimePlugin.getScreenTime();
 
       if (result.permissionRequired) {
         toast({
           title: "Permission Required",
-          description: "Please grant Usage Access permission then try again.",
+          description: "Please enable Usage Access for Future You AI then try again.",
           variant: "destructive",
         });
-        await ScreenTime.requestPermission();
+        await ScreenTimePlugin.requestPermission();
         setLoading(false);
         return;
       }
