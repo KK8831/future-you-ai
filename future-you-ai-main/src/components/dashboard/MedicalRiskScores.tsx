@@ -8,7 +8,8 @@ import {
   FindriscResult
 } from "@/lib/medical-calculators";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Droplets, ChevronDown, ChevronUp, FlaskConical, Info } from "lucide-react";
+import { Heart, Droplets, ChevronDown, ChevronUp, FlaskConical, Info, Smartphone } from "lucide-react";
+import { WearableMetric } from "@/pages/Dashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ import {
 interface MedicalRiskScoresProps {
   entries: LifestyleEntry[];
   userId?: string;
+  wearableData?: WearableMetric[];
 }
 
 function RiskGauge({ percentage, label, category, icon: Icon }: { 
@@ -87,7 +89,10 @@ function BreakdownTable({ breakdown }: { breakdown: { factor: string; points: nu
   );
 }
 
-export function MedicalRiskScores({ entries, userId }: MedicalRiskScoresProps) {
+export function MedicalRiskScores({ entries, userId, wearableData = [] }: MedicalRiskScoresProps) {
+  const heartRate = wearableData.find((d) => d.data_type === "heart_rate")?.value;
+  const steps = wearableData.find((d) => d.data_type === "steps")?.value;
+  const hasWearable = !!heartRate || !!steps;
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [profile, setProfile] = useState<HealthProfile>({
     age: 30,
@@ -171,7 +176,7 @@ export function MedicalRiskScores({ entries, userId }: MedicalRiskScoresProps) {
 
   return (
     <div className="p-6 rounded-xl bg-card border border-border">
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-lg font-display font-semibold text-foreground flex items-center gap-2">
             <FlaskConical className="w-5 h-5 text-accent" />
@@ -181,12 +186,20 @@ export function MedicalRiskScores({ entries, userId }: MedicalRiskScoresProps) {
             Epidemiological calculators — not AI guesses
           </p>
         </div>
-        <button
-          onClick={() => setShowProfileForm(!showProfileForm)}
-          className="text-xs text-accent hover:underline"
-        >
-          {showProfileForm ? "Hide Profile" : "Edit Profile"}
-        </button>
+        <div className="flex items-center gap-2">
+          {hasWearable && (
+            <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+              <Smartphone className="w-3 h-3" />
+              +Wearable
+            </span>
+          )}
+          <button
+            onClick={() => setShowProfileForm(!showProfileForm)}
+            className="text-xs text-accent hover:underline"
+          >
+            {showProfileForm ? "Hide Profile" : "Edit Profile"}
+          </button>
+        </div>
       </div>
 
       {/* Health Profile Form */}

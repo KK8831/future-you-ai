@@ -5,10 +5,11 @@ import { User } from "@supabase/supabase-js";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { LifestyleEntry } from "@/types/lifestyle";
+import { WearableMetric } from "@/pages/Dashboard";
 import { calculateMedicalRisks, HealthProfile, calculateBMI } from "@/lib/medical-calculators";
 import { detectAnomalies, detectBehavioralDrift, monteCarloSimulation, AnomalyPoint, DriftResult } from "@/lib/advanced-analytics";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, Brain, RefreshCw, Sparkles, Download } from "lucide-react";
+import { Bot, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, Brain, RefreshCw, Sparkles, Download, Heart, Footprints, Monitor } from "lucide-react";
 import { usePdfExport } from "@/hooks/usePdfExport";
 
 interface AgentResult {
@@ -22,6 +23,7 @@ const AIInsights = () => {
   const { exportToPdf, isExporting } = usePdfExport({ filename: "AI_Health_Intelligence_Report.pdf" });
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LifestyleEntry[]>([]);
+  const [wearableData, setWearableData] = useState<WearableMetric[]>([]);
   const [profile, setProfile] = useState<HealthProfile>({ age: 30, sex: "unspecified", heightCm: 170, weightKg: 70 });
   const [agentResults, setAgentResults] = useState<AgentResult[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
@@ -46,7 +48,8 @@ const AIInsights = () => {
     Promise.all([
       supabase.from("lifestyle_entries").select("*").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(30),
       supabase.from("profiles").select("age, sex, height_cm, weight_kg").eq("user_id", user.id).maybeSingle(),
-    ]).then(([entriesRes, profileRes]) => {
+      supabase.from("wearable_data").select("*").eq("user_id", user.id).order("recorded_at", { ascending: false }).limit(50),
+    ]).then(([entriesRes, profileRes, wearableRes]) => {
       if (entriesRes.data) setEntries(entriesRes.data as LifestyleEntry[]);
       if (profileRes.data) {
         setProfile({
@@ -56,6 +59,7 @@ const AIInsights = () => {
           weightKg: Number(profileRes.data.weight_kg) || 70,
         });
       }
+      if (wearableRes.data) setWearableData(wearableRes.data as WearableMetric[]);
     });
   }, [user]);
 
@@ -83,11 +87,21 @@ const AIInsights = () => {
     if (!metrics || !riskScores) return;
     setAnalyzing(true);
 
+    // Build wearable context for AI
+    const wearableContext = {
+      heartRateBpm:    wearableData.find(d => d.data_type === "heart_rate")?.value ?? null,
+      dailySteps:      wearableData.find(d => d.data_type === "steps")?.value ?? null,
+      screenTimeHours: wearableData.find(d => d.data_type === "screen_time")?.value ?? null,
+      sleepHours:      wearableData.find(d => d.data_type === "sleep_duration")?.value ?? null,
+      weightKg:        wearableData.find(d => d.data_type === "weight")?.value ?? null,
+    };
+
     try {
       const { data, error } = await supabase.functions.invoke("ai-health-agent", {
         body: {
           profile: { ...profile, bmi: calculateBMI(profile.heightCm, profile.weightKg) },
           metrics,
+          wearable: wearableContext,
           riskScores: {
             framingham: riskScores.framingham.riskPercentage,
             framinghamCategory: riskScores.framingham.riskCategory,
@@ -184,6 +198,30 @@ const AIInsights = () => {
             </Button>
           </div>
         </div>
+
+        {/* Wearable data context panel */}
+        {wearableData.length > 0 && (
+          <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+            <p className="text-xs font-semibold text-green-400 mb-2">📱 Wearable data included in AI analysis:</p>
+            <div className="flex flex-wrap gap-2">
+              {wearableData.find(d => d.data_type === "heart_rate") && (
+                <span className="text-xs px-2 py-1 rounded-full bg-background text-muted-foreground flex items-center gap-1">
+                  <Heart className="w-3 h-3 text-red-400" /> HR: {wearableData.find(d => d.data_type === "heart_rate")!.value} bpm
+                </span>
+              )}
+              {wearableData.find(d => d.data_type === "steps") && (
+                <span className="text-xs px-2 py-1 rounded-full bg-background text-muted-foreground flex items-center gap-1">
+                  <Footprints className="w-3 h-3 text-green-400" /> Steps: {wearableData.find(d => d.data_type === "steps")!.value}
+                </span>
+              )}
+              {wearableData.find(d => d.data_type === "screen_time") && (
+                <span className="text-xs px-2 py-1 rounded-full bg-background text-muted-foreground flex items-center gap-1">
+                  <Monitor className="w-3 h-3 text-blue-400" /> Screen: {wearableData.find(d => d.data_type === "screen_time")!.value}h
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {entries.length < 3 && (
           <div className="p-8 rounded-xl bg-secondary/30 border border-border text-center">

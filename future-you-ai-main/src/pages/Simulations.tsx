@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { LifestyleEntry } from "@/types/lifestyle";
+import { WearableMetric } from "@/pages/Dashboard";
 import { HealthProfile } from "@/lib/medical-calculators";
 import { SplitScreenSimulation } from "@/components/simulations/SplitScreenSimulation";
-import { Play, Plus, TrendingUp, TrendingDown, Minus, Trash2 } from "lucide-react";
+import { Play, Plus, TrendingUp, TrendingDown, Minus, Trash2, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -41,6 +42,7 @@ const Simulations = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LifestyleEntry[]>([]);
+  const [wearableData, setWearableData] = useState<WearableMetric[]>([]);
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -91,7 +93,7 @@ const Simulations = () => {
   const fetchData = async () => {
     if (!user) return;
 
-    const [entriesRes, simsRes, profileRes] = await Promise.all([
+    const [entriesRes, simsRes, profileRes, wearableRes] = await Promise.all([
       supabase
         .from("lifestyle_entries")
         .select("*")
@@ -108,14 +110,16 @@ const Simulations = () => {
         .select("age, sex, height_cm, weight_kg")
         .eq("user_id", user.id)
         .maybeSingle(),
+      supabase
+        .from("wearable_data")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("recorded_at", { ascending: false })
+        .limit(50),
     ]);
 
-    if (!entriesRes.error && entriesRes.data) {
-      setEntries(entriesRes.data as LifestyleEntry[]);
-    }
-    if (!simsRes.error && simsRes.data) {
-      setSimulations(simsRes.data as unknown as Simulation[]);
-    }
+    if (!entriesRes.error && entriesRes.data) setEntries(entriesRes.data as LifestyleEntry[]);
+    if (!simsRes.error && simsRes.data) setSimulations(simsRes.data as unknown as Simulation[]);
     if (profileRes.data) {
       setProfile({
         age: profileRes.data.age || 30,
@@ -124,20 +128,30 @@ const Simulations = () => {
         weightKg: Number(profileRes.data.weight_kg) || 70,
       });
     }
+    if (!wearableRes.error && wearableRes.data) setWearableData(wearableRes.data as WearableMetric[]);
   };
 
-  // Calculate current baseline
+  // Get wearable signals
+  const wearableHeartRate = wearableData.find(d => d.data_type === "heart_rate")?.value;
+  const wearableSteps = wearableData.find(d => d.data_type === "steps")?.value;
+  const hasWearable = !!wearableHeartRate || !!wearableSteps;
+
+  // Calculate current baseline — supplement with wearable if lifestyle entries are sparse
   const baseline = useMemo(() => {
-    if (entries.length === 0) return null;
+    if (entries.length === 0 && !wearableSteps) return null;
     const recent = entries.slice(0, Math.min(7, entries.length));
+    const activityFromSteps = wearableSteps ? Math.round(wearableSteps / 100) : null; // ~100 steps/min
+    const baseActivity = recent.length > 0
+      ? Math.round(recent.reduce((s, e) => s + e.physical_activity_minutes, 0) / recent.length)
+      : (activityFromSteps ?? 30);
     return {
-      activity: Math.round(recent.reduce((s, e) => s + e.physical_activity_minutes, 0) / recent.length),
-      sleep: Number((recent.reduce((s, e) => s + e.sleep_hours, 0) / recent.length).toFixed(1)),
-      diet: Number((recent.reduce((s, e) => s + e.diet_quality_score, 0) / recent.length).toFixed(1)),
-      stress: Number((recent.reduce((s, e) => s + e.stress_level, 0) / recent.length).toFixed(1)),
-      screen: Number((recent.reduce((s, e) => s + e.screen_time_hours, 0) / recent.length).toFixed(1)),
+      activity: activityFromSteps ? Math.max(baseActivity, activityFromSteps) : baseActivity,
+      sleep:  recent.length > 0 ? Number((recent.reduce((s, e) => s + e.sleep_hours, 0) / recent.length).toFixed(1)) : 7,
+      diet:   recent.length > 0 ? Number((recent.reduce((s, e) => s + e.diet_quality_score, 0) / recent.length).toFixed(1)) : 5,
+      stress: recent.length > 0 ? Number((recent.reduce((s, e) => s + e.stress_level, 0) / recent.length).toFixed(1)) : 5,
+      screen: recent.length > 0 ? Number((recent.reduce((s, e) => s + e.screen_time_hours, 0) / recent.length).toFixed(1)) : 4,
     };
-  }, [entries]);
+  }, [entries, wearableSteps]);
 
   // Calculate projected values
   const projectedValues = useMemo(() => {
@@ -151,16 +165,20 @@ const Simulations = () => {
     };
   }, [baseline, activityChange, sleepChange, dietChange, stressChange, screenChange]);
 
-  // Calculate projected health score
+  // Calculate projected health score (factoring in heart rate if available)
   const projectedHealthScore = useMemo(() => {
     if (!projectedValues) return 50;
-    const actScore = Math.min(projectedValues.activity / 60, 1) * 25;
+    const actScore   = Math.min(projectedValues.activity / 60, 1) * 25;
     const sleepScore = Math.min(projectedValues.sleep / 8, 1) * 25;
-    const dietScore = (projectedValues.diet / 10) * 20;
+    const dietScore  = (projectedValues.diet / 10) * 20;
     const stressScore = ((10 - projectedValues.stress) / 10) * 15;
-    const screenScore = Math.max(1 - projectedValues.screen / 10, 0) * 15;
-    return Math.round(actScore + sleepScore + dietScore + stressScore + screenScore);
-  }, [projectedValues]);
+    const screenScore = Math.max(1 - projectedValues.screen / 10, 0) * 10;
+    // Heart rate factor: ideal resting HR 60-70, penalise above 80
+    const hrPenalty = wearableHeartRate && wearableHeartRate > 80
+      ? -Math.min((wearableHeartRate - 80) * 0.2, 5)
+      : 0;
+    return Math.max(0, Math.round(actScore + sleepScore + dietScore + stressScore + screenScore + hrPenalty));
+  }, [projectedValues, wearableHeartRate]);
 
   const handleCreateSimulation = async () => {
     if (!user || !name.trim()) return;
@@ -231,6 +249,13 @@ const Simulations = () => {
             <p className="text-muted-foreground mt-1">
               Explore how lifestyle changes could impact your health over time
             </p>
+            {hasWearable && (
+              <p className="text-xs text-green-400 flex items-center gap-1 mt-1">
+                <Smartphone className="w-3 h-3" />
+                Baseline enhanced with wearable data
+                {wearableHeartRate && <span>(HR: {wearableHeartRate} bpm)</span>}
+              </p>
+            )}
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>

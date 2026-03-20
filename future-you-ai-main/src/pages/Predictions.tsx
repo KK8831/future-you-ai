@@ -7,8 +7,9 @@ import { RiskPredictions } from "@/components/dashboard/RiskPredictions";
 import { MedicalRiskScores } from "@/components/dashboard/MedicalRiskScores";
 import { Recommendations } from "@/components/dashboard/Recommendations";
 import { LifestyleEntry } from "@/types/lifestyle";
+import { WearableMetric } from "@/pages/Dashboard";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Shield, Info, ClipboardPlus, Brain, FlaskConical, Download, RefreshCw } from "lucide-react";
+import { AlertTriangle, Shield, Info, ClipboardPlus, Brain, FlaskConical, Download, RefreshCw, Heart, Footprints, Monitor } from "lucide-react";
 import { usePdfExport } from "@/hooks/usePdfExport";
 
 const Predictions = () => {
@@ -17,6 +18,7 @@ const Predictions = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LifestyleEntry[]>([]);
+  const [wearableData, setWearableData] = useState<WearableMetric[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,22 +47,30 @@ const Predictions = () => {
   useEffect(() => {
     if (user) {
       fetchEntries();
+      fetchWearableData();
     }
   }, [user]);
 
   const fetchEntries = async () => {
     if (!user) return;
-
     const { data, error } = await supabase
       .from("lifestyle_entries")
       .select("*")
       .eq("user_id", user.id)
       .order("entry_date", { ascending: false })
       .limit(30);
+    if (!error && data) setEntries(data as LifestyleEntry[]);
+  };
 
-    if (!error && data) {
-      setEntries(data as LifestyleEntry[]);
-    }
+  const fetchWearableData = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("wearable_data")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("recorded_at", { ascending: false })
+      .limit(50);
+    if (!error && data) setWearableData(data as WearableMetric[]);
   };
 
   if (loading) {
@@ -161,11 +171,36 @@ const Predictions = () => {
               </div>
             </div>
 
+          {/* Wearable data summary strip */}
+          {wearableData.length > 0 && (
+            <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+              <span className="text-xs font-medium text-green-400 mr-1">📱 Wearable data included:</span>
+              {wearableData.find(d => d.data_type === "heart_rate") && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-background text-muted-foreground flex items-center gap-1">
+                  <Heart className="w-3 h-3 text-red-400" />
+                  HR: {wearableData.find(d => d.data_type === "heart_rate")!.value} bpm
+                </span>
+              )}
+              {wearableData.find(d => d.data_type === "steps") && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-background text-muted-foreground flex items-center gap-1">
+                  <Footprints className="w-3 h-3 text-green-400" />
+                  Steps: {wearableData.find(d => d.data_type === "steps")!.value}
+                </span>
+              )}
+              {wearableData.find(d => d.data_type === "screen_time") && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-background text-muted-foreground flex items-center gap-1">
+                  <Monitor className="w-3 h-3 text-blue-400" />
+                  Screen: {wearableData.find(d => d.data_type === "screen_time")!.value}h
+                </span>
+              )}
+            </div>
+          )}
+
             {/* Medical Risk Scores - Validated Calculators */}
-            <MedicalRiskScores entries={entries} userId={user?.id} />
+            <MedicalRiskScores entries={entries} userId={user?.id} wearableData={wearableData} />
 
             {/* Pattern-based risk predictions */}
-            <RiskPredictions entries={entries} />
+            <RiskPredictions entries={entries} wearableData={wearableData} />
 
             {/* Recommendations */}
             <Recommendations entries={entries} />
