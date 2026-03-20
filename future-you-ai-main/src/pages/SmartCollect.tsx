@@ -7,7 +7,8 @@ import { VoiceHealthInput } from "@/components/smart-collect/VoiceHealthInput";
 import { CameraHeartRate } from "@/components/smart-collect/CameraHeartRate";
 import { MedicalReportOCR } from "@/components/smart-collect/MedicalReportOCR";
 import { GoogleFitConnect } from "@/components/smart-collect/GoogleFitConnect";
-import { Smartphone, Mic, Camera, FileText, Activity } from "lucide-react";
+import { ScreenTimeCollect } from "@/components/smart-collect/ScreenTimeCollect";
+import { Smartphone, Mic, Camera, FileText, Activity, Monitor } from "lucide-react";
 
 const SmartCollect = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -148,6 +149,29 @@ const SmartCollect = () => {
               </div>
             </div>
             <GoogleFitConnect userId={user?.id} />
+          </div>
+
+          {/* Screen Time Tracker */}
+          <div className="p-6 rounded-2xl bg-card border border-border shadow-sm">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <Monitor className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-display font-semibold text-foreground">
+                    Screen Time Tracker
+                  </h2>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                    Android
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Auto-fetch daily screen time from your device
+                </p>
+              </div>
+            </div>
+            <ScreenTimeCollect userId={user?.id} />
           </div>
         </div>
       </div>
