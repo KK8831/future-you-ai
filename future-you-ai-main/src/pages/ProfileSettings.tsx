@@ -10,7 +10,11 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calculateBMI } from "@/lib/medical-calculators";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Heart, Scale, Activity, Brain } from "lucide-react";
+import { Save, Heart, Scale, Activity, Brain, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ProfileData {
   age: number;
@@ -33,7 +37,7 @@ const ProfileSettings = () => {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
   const [profile, setProfile] = useState<ProfileData>({
     age: 30,
     sex: "unspecified",
@@ -89,9 +93,35 @@ const ProfileSettings = () => {
       });
   }, [user]);
 
+  useEffect(() => {
+    if (user?.user_metadata?.date_of_birth) {
+      setDateOfBirth(new Date(user.user_metadata.date_of_birth));
+    }
+  }, [user?.user_metadata?.date_of_birth]);
+
+  const handleDateChange = (date: Date | undefined) => {
+    setDateOfBirth(date);
+    if (date) {
+      const today = new Date();
+      let ageCalculated = today.getFullYear() - date.getFullYear();
+      const m = today.getMonth() - date.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < date.getDate())) {
+        ageCalculated--;
+      }
+      setProfile((p) => ({ ...p, age: Math.max(0, ageCalculated) }));
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
+    
+    if (dateOfBirth) {
+      await supabase.auth.updateUser({
+        data: { date_of_birth: dateOfBirth.toISOString() }
+      });
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -155,8 +185,37 @@ const ProfileSettings = () => {
               <Input value={profile.full_name} onChange={(e) => setProfile((p) => ({ ...p, full_name: e.target.value }))} className="mt-1" />
             </div>
             <div>
-              <Label>Age</Label>
-              <Input type="number" value={profile.age} onChange={(e) => setProfile((p) => ({ ...p, age: parseInt(e.target.value) || 30 }))} min={18} max={99} className="mt-1" />
+              <Label>Date of Birth</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full mt-1 justify-start text-left font-normal",
+                      !dateOfBirth && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateOfBirth ? format(dateOfBirth, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateOfBirth}
+                    onSelect={handleDateChange}
+                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                    defaultMonth={dateOfBirth || new Date(1990, 0, 1)}
+                    captionLayout="dropdown-buttons"
+                    fromYear={1900}
+                    toYear={new Date().getFullYear()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground mt-1">
+                Age: {profile.age} (Auto-calculated)
+              </p>
             </div>
             <div>
               <Label>Biological Sex</Label>
