@@ -248,33 +248,40 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-[240px] pt-14 lg:pt-0">
-        {/* Top Bar */}
-        <div className="hidden lg:flex h-14 items-center justify-between px-6 bg-card border-b border-border sticky top-0 z-30">
-          <div className="flex items-center gap-3 flex-1 max-w-md">
-            <div className="flex items-center gap-2 flex-1 px-3 py-1.5 rounded-lg bg-secondary text-sm text-muted-foreground">
+        {/* Top Bar — refined alignment and depth */}
+        <div className="hidden lg:flex h-16 items-center justify-between px-8 bg-card border-b border-border sticky top-0 z-30 shadow-sm backdrop-blur-md bg-card/80">
+          <div className="flex items-center gap-4 flex-1 max-w-xl">
+            <div className="flex items-center gap-3 flex-1 px-4 py-2 rounded-xl bg-secondary/50 border border-border/50 text-sm text-muted-foreground transition-all hover:bg-secondary/80 focus-within:ring-2 focus-within:ring-accent/20">
               <Search className="w-4 h-4" />
-              <span>Search metrics, insights...</span>
+              <input 
+                type="text" 
+                placeholder="Search metrics, predictive insights, or health history..." 
+                className="bg-transparent border-none outline-none w-full text-foreground placeholder:text-muted-foreground/60"
+              />
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <button className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors">
-              <Bell className="w-[18px] h-[18px]" />
-            </button>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>{format(new Date(), "MMMM d, yyyy")}</span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium bg-secondary/30 px-3 py-1.5 rounded-lg border border-border/50">
+              <Calendar className="w-4 h-4 text-accent" />
+              <span>{format(new Date(), "EEEE, MMMM do")}</span>
             </div>
-            <Link
-              to="/ai-insights"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
-            >
-              <FileText className="w-4 h-4" />
-              Generate Report
-            </Link>
+            <div className="flex items-center gap-3">
+              <button className="relative p-2.5 rounded-xl hover:bg-secondary text-muted-foreground transition-all">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 border-2 border-card rounded-full" />
+              </button>
+              <Link
+                to="/ai-insights"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-all shadow-md shadow-accent/20 active:scale-95"
+              >
+                <FileText className="w-4 h-4" />
+                Generate Insight Report
+              </Link>
+            </div>
           </div>
         </div>
 
-        <div className="p-4 lg:p-6">{children}</div>
+        <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">{children}</div>
       </main>
 
       {/* Global Chatbot Widget */}

@@ -1,0 +1,156 @@
+﻿[36mvite v5.4.19 [32mbuilding for production...[36m[39m
+transforming...
+node.exe : 
+[33m[vite:css] 
+@import must precede 
+all other statements 
+(besides @charset or 
+empty @layer)
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ([33m[vite:cs   
+ s]...r empty @laye    
+r):String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+3  |  @tailwind 
+utilities;
+4  |  
+5  |  @import url('http
+s://fonts.googleapis.co
+m/css2?family=Inter:wgh
+t@300;400;500;600;700;8
+00&family=Space+Grotesk
+:wght@400;500;600;700&d
+isplay=swap');
+   |  ^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
+6  |  
+7  |  /* FutureMe AI 
+Design System - 
+Health-Tech Premium 
+Aesthetic */[39m
+[32mΓ£ô[39m 4386 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mregisterSW.js                 [39m[1m[2m    0.13 kB[22m[1m[22m
+[2mdist/[22m[32mmanifest.webmanifest          [39m[1m[2m    0.35 kB[22m[1m[22m
+[2mdist/[22m[32mindex.html                    [39m[1m[2m    1.19 kB[22m[1m[22m[2m Γöé gzip:   0.51 kB[22m
+[2mdist/[22m[35massets/index-CCbdnLzS.css     [39m[1m[2m   88.25 kB[22m[1m[22m[2m Γöé gzip:  14.63 kB[22m
+[2mdist/[22m[36massets/purify.es-BgtpMKW3.js  [39m[1m[2m   22.77 kB[22m[1m[22m[2m Γöé gzip:   8.79 kB[22m
+[2mdist/[22m[36massets/index.es-zpJMBisC.js   [39m[1m[2m  150.47 kB[22m[1m[22m[2m Γöé gzip:  51.44 kB[22m
+[2mdist/[22m[36massets/index-DCX_u1ON.js      [39m[1m[33m2,821.09 kB[39m[22m[2m Γöé gzip: 793.03 kB[22m
+[33m
+(!) Some chunks are 
+larger than 500 kB 
+after minification. 
+Consider:
+- Using dynamic 
+import() to code-split 
+the application
+- Use build.rollupOptio
+ns.output.manualChunks 
+to improve chunking: ht
+tps://rollupjs.org/conf
+iguration-options/#outp
+ut-manualchunks
+- Adjust chunk size 
+limit for this warning 
+via build.chunkSizeWarn
+ingLimit.[39m
+[32mΓ£ô built in 30.26s[39m
+[31merror during 
+build:
+Error: 
+  Configure "workbox.ma
+ximumFileSizeToCacheInB
+ytes" to change the 
+limit: the default 
+value is 2 MiB.
+  Check https://vite-pw
+a-org.netlify.app/guide
+/faq.html#missing-asset
+s-from-sw-precache-mani
+fest for more 
+information.
+  Assets exceeding the 
+limit:
+  - assets/index-DCX_u1
+ON.js is 2.82 MB, and 
+won't be precached.
+
+    at 
+logWorkboxResult (file:
+///C:/Users/korek/Futur
+eMe-AI/future-you-ai-ma
+in/node_modules/vite-pl
+ugin-pwa/dist/chunk-G4T
+AN34B.js:44:13)
+    at 
+generateServiceWorker (
+file:///C:/Users/korek/
+FutureMe-AI/future-you-
+ai-main/node_modules/vi
+te-plugin-pwa/dist/inde
+x.js:209:3)
+    at async 
+_generateSW (file:///C:
+/Users/korek/FutureMe-A
+I/future-you-ai-main/no
+de_modules/vite-plugin-
+pwa/dist/index.js:234:5
+)
+    at async 
+Object.handler (file://
+/C:/Users/korek/FutureM
+e-AI/future-you-ai-main
+/node_modules/vite-plug
+in-pwa/dist/index.js:42
+7:13)
+    at async PluginDriv
+er.hookParallel (file:/
+//C:/Users/korek/Future
+Me-AI/future-you-ai-mai
+n/node_modules/vite/nod
+e_modules/rollup/dist/e
+s/shared/node-entry.js:
+22475:17)
+    at async 
+Object.close (file:///C
+:/Users/korek/FutureMe-
+AI/future-you-ai-main/n
+ode_modules/vite/node_m
+odules/rollup/dist/es/s
+hared/node-entry.js:234
+94:13)
+    at async build (fil
+e:///C:/Users/korek/Fut
+ureMe-AI/future-you-ai-
+main/node_modules/vite/
+dist/node/chunks/dep-C6
+uTJdX2.js:65716:17)
+    at async 
+CAC.<anonymous> (file:/
+//C:/Users/korek/Future
+Me-AI/future-you-ai-mai
+n/node_modules/vite/dis
+t/node/cli.js:829:5)[3
+9m

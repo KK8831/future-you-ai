@@ -39,6 +39,15 @@ function generateRecommendations(entries: LifestyleEntry[]): Recommendation[] {
       priority: avgActivity < 15 ? "high" : "medium",
       expectedImpact: "Reduce cardiovascular risk by up to 20%",
     });
+  } else {
+    recommendations.push({
+      id: "activity-good",
+      title: "Maintain Excellent Activity",
+      description: `Great job! You're averaging ${Math.round(avgActivity)} minutes daily. Keep up your active lifestyle to maintain your heart health.`,
+      category: "activity",
+      priority: "low",
+      expectedImpact: "Maintain optimal cardiovascular fitness",
+    });
   }
 
   // Sleep recommendations
@@ -60,6 +69,15 @@ function generateRecommendations(entries: LifestyleEntry[]): Recommendation[] {
       priority: "low",
       expectedImpact: "Improve energy levels and daily productivity",
     });
+  } else {
+    recommendations.push({
+      id: "sleep-good",
+      title: "Optimal Rest Preserved",
+      description: `Your sleep average is a healthy ${avgSleep.toFixed(1)} hours. Consistent rest is foundational to your body's cellular repair protocol.`,
+      category: "sleep",
+      priority: "low",
+      expectedImpact: "Sustain cognitive sharpness and immune defense",
+    });
   }
 
   // Diet recommendations
@@ -72,6 +90,15 @@ function generateRecommendations(entries: LifestyleEntry[]): Recommendation[] {
       priority: avgDiet < 4 ? "high" : "medium",
       expectedImpact: "Lower diabetes risk and improve energy levels",
     });
+  } else {
+    recommendations.push({
+      id: "diet-good",
+      title: "Strong Nutritional Baseline",
+      description: `Your diet score is a solid ${avgDiet.toFixed(1)}/10. You are providing your body with excellent macronutrients to fuel your longevity.`,
+      category: "diet",
+      priority: "low",
+      expectedImpact: "Support long-term metabolic stability",
+    });
   }
 
   // Stress recommendations
@@ -83,6 +110,15 @@ function generateRecommendations(entries: LifestyleEntry[]): Recommendation[] {
       category: "stress",
       priority: avgStress > 7 ? "high" : "medium",
       expectedImpact: "Reduce mental health risks and improve sleep quality",
+    });
+  } else {
+    recommendations.push({
+      id: "stress-good",
+      title: "Stress Well Managed",
+      description: `Your stress levels are low at ${avgStress.toFixed(1)}/10. Great work prioritizing your mental bandwidth and recovery.`,
+      category: "stress",
+      priority: "low",
+      expectedImpact: "Lower cortisol impact on biological aging",
     });
   }
 
@@ -98,7 +134,12 @@ function generateRecommendations(entries: LifestyleEntry[]): Recommendation[] {
     });
   }
 
-  return recommendations.slice(0, 5);
+  // Sort by priority (high -> medium -> low)
+  const priorityScore = { high: 3, medium: 2, low: 1 };
+  recommendations.sort((a, b) => priorityScore[b.priority] - priorityScore[a.priority]);
+
+  // Always return 4-5 recommendations so the UI looks full and professional
+  return recommendations.slice(0, 4);
 }
 
 const categoryIcons = {
