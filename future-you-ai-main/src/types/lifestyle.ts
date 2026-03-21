@@ -49,11 +49,34 @@ export interface SimulationScenario {
     sleep_change: number;
     diet_change: number;
     stress_change: number;
-    screen_time_change: number;
+    screen_time_hours_change?: number; // Optional new field
+    screen_time_change?: number; // Legacy field
   };
   projectedOutcomes: {
     healthScore: number;
     riskReduction: Record<string, number>;
   };
   timeframe_years: number;
+}
+
+export interface WearableMetric {
+  data_type: string;
+  value: number;
+  unit: string;
+  recorded_at?: string;
+  last_updated?: string;
+  source?: string;
+}
+
+export interface AgingForecast {
+  chronologicalAge: number;
+  biologicalAge: number;
+  agingRate: number; // 0.8 to 1.5
+  healthspan: number; // years of health remaining
+  projectedLifespan: number;
+  influencingFactors: {
+    factor: string;
+    impact: "positive" | "negative";
+    description: string;
+  }[];
 }

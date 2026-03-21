@@ -16,16 +16,12 @@ import { PatientProfileCard } from "@/components/dashboard/PatientProfileCard";
 import { HealthIndexBar } from "@/components/dashboard/HealthIndexBar";
 import { FeatureImportance } from "@/components/dashboard/FeatureImportance";
 import { SupplementCards } from "@/components/dashboard/SupplementCards";
+import { LongevityForecast } from "@/components/dashboard/LongevityForecast";
+import { FutureSelfMessage } from "@/components/dashboard/FutureSelfMessage";
 import { LifestyleEntry } from "@/types/lifestyle";
-import { Footprints, Flame, MapPin, Heart, Moon, Scale, Monitor, Smartphone } from "lucide-react";
+import { Footprints, Flame, MapPin, Heart, Moon, Scale, Monitor, Smartphone, Sparkles } from "lucide-react";
 
-export interface WearableMetric {
-  data_type: string;
-  value: number;
-  unit: string;
-  source: string;
-  recorded_at: string;
-}
+// WearableMetric is now imported from @/types/lifestyle
 
 const ALL_WEARABLE_CARDS = [
   { type: "heart_rate",      label: "Heart Rate",  icon: Heart,      color: "text-red-500",    bg: "bg-red-500/10",    unit: "bpm" },
@@ -43,6 +39,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LifestyleEntry[]>([]);
   const [wearableData, setWearableData] = useState<WearableMetric[]>([]);
+  const [profile, setProfile] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,8 +61,19 @@ const Dashboard = () => {
     if (user) {
       fetchEntries();
       fetchWearableData();
+      fetchProfile();
     }
   }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!error && data) setProfile(data);
+  };
 
   const fetchEntries = async () => {
     if (!user) return;
@@ -160,16 +168,21 @@ const Dashboard = () => {
               );
             })}
           </div>
+        </div>
 
-          {!hasAnyWearable && (
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              No wearable data yet — visit{" "}
-              <Link to="/smart-collect" className="text-accent hover:underline">
-                Smart Collect
-              </Link>{" "}
-              to auto-fetch heart rate, screen time, and more.
-            </p>
-          )}
+        {/* REVEAL: Future Vision Section */}
+        <div className="mt-8 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-1.5 rounded-lg bg-accent/20">
+              <Sparkles className="w-5 h-5 text-accent" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground">Future Vision</h2>
+          </div>
+          
+          <div className="grid lg:grid-cols-[1fr_360px] gap-4">
+            <LongevityForecast profile={profile} wearableData={wearableData} />
+            <FutureSelfMessage profile={profile} metrics={entries[0]} riskScores={null} />
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-4 mt-4">

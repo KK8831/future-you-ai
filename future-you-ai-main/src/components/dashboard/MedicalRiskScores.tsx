@@ -9,7 +9,7 @@ import {
 } from "@/lib/medical-calculators";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, Droplets, ChevronDown, ChevronUp, FlaskConical, Info, Smartphone } from "lucide-react";
-import { WearableMetric } from "@/pages/Dashboard";
+import { WearableMetric } from "@/types/lifestyle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,8 +90,8 @@ function BreakdownTable({ breakdown }: { breakdown: { factor: string; points: nu
 }
 
 export function MedicalRiskScores({ entries, userId, wearableData = [] }: MedicalRiskScoresProps) {
-  const heartRate = wearableData.find((d) => d.data_type === "heart_rate")?.value;
-  const steps = wearableData.find((d) => d.data_type === "steps")?.value;
+  const heartRate = wearableData?.find((d) => d.data_type === "heart_rate")?.value;
+  const steps = wearableData?.find((d) => d.data_type === "steps")?.value;
   const hasWearable = !!heartRate || !!steps;
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [profile, setProfile] = useState<HealthProfile>({

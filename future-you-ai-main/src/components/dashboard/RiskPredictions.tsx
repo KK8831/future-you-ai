@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { AlertTriangle, Shield, Info, Smartphone } from "lucide-react";
 import { LifestyleEntry, HealthRisk } from "@/types/lifestyle";
-import { WearableMetric } from "@/pages/Dashboard";
+import { WearableMetric } from "@/types/lifestyle";
 
 interface RiskPredictionsProps {
   entries: LifestyleEntry[];
@@ -107,8 +107,8 @@ const severityConfig = {
 };
 
 export function RiskPredictions({ entries, wearableData = [] }: RiskPredictionsProps) {
-  const heartRate  = wearableData.find((d) => d.data_type === "heart_rate")?.value;
-  const steps      = wearableData.find((d) => d.data_type === "steps")?.value;
+  const heartRate  = wearableData?.find((d) => d.data_type === "heart_rate")?.value;
+  const steps      = wearableData?.find((d) => d.data_type === "steps")?.value;
   const hasWearable = !!heartRate || !!steps;
 
   const risks = useMemo(

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Minus, Brain, Heart, Footprints, Zap, Smartphone } from "lucide-react";
 import { LifestyleEntry, DigitalTwinState } from "@/types/lifestyle";
-import { WearableMetric } from "@/pages/Dashboard";
+import { WearableMetric } from "@/types/lifestyle";
 
 interface DigitalTwinOverviewProps {
   entries: LifestyleEntry[];
@@ -9,8 +9,8 @@ interface DigitalTwinOverviewProps {
 }
 
 function calculateTwinState(entries: LifestyleEntry[], wearableData: WearableMetric[] = []): DigitalTwinState & { heartRate?: number } {
-  const heartRate = wearableData.find(d => d.data_type === "heart_rate")?.value;
-  const wearableSteps = wearableData.find(d => d.data_type === "steps")?.value;
+  const heartRate = wearableData?.find(d => d.data_type === "heart_rate")?.value;
+  const wearableSteps = wearableData?.find(d => d.data_type === "steps")?.value;
 
   if (entries.length === 0 && !wearableSteps) {
     return {
