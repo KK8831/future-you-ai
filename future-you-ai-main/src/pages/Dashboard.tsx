@@ -18,10 +18,9 @@ import { FeatureImportance } from "@/components/dashboard/FeatureImportance";
 import { SupplementCards } from "@/components/dashboard/SupplementCards";
 import { LongevityForecast } from "@/components/dashboard/LongevityForecast";
 import { FutureSelfMessage } from "@/components/dashboard/FutureSelfMessage";
-import { LifestyleEntry } from "@/types/lifestyle";
+import { LifestyleEntry, WearableMetric } from "@/types/lifestyle";
 import { Footprints, Flame, MapPin, Heart, Moon, Scale, Monitor, Smartphone, Sparkles } from "lucide-react";
 
-// WearableMetric is now imported from @/types/lifestyle
 
 const ALL_WEARABLE_CARDS = [
   { type: "heart_rate",      label: "Heart Rate",  icon: Heart,      color: "text-red-500",    bg: "bg-red-500/10",    unit: "bpm" },
@@ -181,7 +180,7 @@ const Dashboard = () => {
           
           <div className="grid lg:grid-cols-[1fr_360px] gap-4">
             <LongevityForecast profile={profile} wearableData={wearableData} />
-            <FutureSelfMessage profile={profile} metrics={entries[0]} riskScores={null} />
+            <FutureSelfMessage profile={profile} metrics={entries[0]} riskScores={null} entries={entries} />
           </div>
         </div>
 

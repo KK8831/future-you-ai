@@ -204,6 +204,27 @@ Design 2-3 simulation scenarios: one "Realistic" (small achievable changes), one
   return { agent: "simulation", output: JSON.parse(output), reasoning: "Designed simulation scenarios based on recommendation priorities with projected outcomes." };
 }
 
+/**
+ * Future Self Agent: Generates a message from the future
+ */
+async function runFutureSelfAgent(apiKey: string, context: any): Promise<AgentResult> {
+  const systemPrompt = `You are the User's Future Self in the year 2040. Your goal is to:
+1. Provide an inspiring, slightly mysterious, but deeply personal message to your 2026 self.
+2. Reference their current health data (HR, steps, activity, etc.) as the "foundation" for the health you enjoy in 2040.
+3. Be encouraging and focus on the compound interest of healthy habits.
+4. If current data is poor, gently warn about the "alternate timeline" you want to avoid.
+5. Keep it short (2-3 sentences), immersive, and first-person.
+
+Example: "I'm writing this while on my morning run in 2040. Those 10k steps you're taking today aren't just numbers; they're the reason I still feel 25 even now. Keep going, the view from here is beautiful."`;
+
+  const userPrompt = `Current Health Context (2026): ${JSON.stringify(context, null, 2)}
+  
+  Speak to me from 2040. Focus on how my current actions are shaping our shared future.`;
+
+  const output = await callAI(apiKey, systemPrompt, userPrompt);
+  return { agent: "future_self", output: JSON.parse(output), reasoning: "Generated an immersive first-person narrative from the year 2040 based on current health trajectories." };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -238,6 +259,9 @@ serve(async (req) => {
     } else if (agentType === "recommendations") {
       const recommendationResult = await runRecommendationAgent(LOVABLE_API_KEY, context, {});
       results = [recommendationResult];
+    } else if (agentType === "future-self") {
+      const futureSelfResult = await runFutureSelfAgent(LOVABLE_API_KEY, context);
+      results = [futureSelfResult];
     } else {
       // Default: planner only
       const plannerResult = await runPlannerAgent(LOVABLE_API_KEY, context);

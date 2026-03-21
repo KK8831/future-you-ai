@@ -8,9 +8,10 @@ interface FutureSelfMessageProps {
   profile: any;
   metrics: any;
   riskScores: any;
+  entries?: any[];
 }
-
-export function FutureSelfMessage({ profile, metrics, riskScores }: FutureSelfMessageProps) {
+ 
+export function FutureSelfMessage({ profile, metrics, riskScores, entries }: FutureSelfMessageProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -23,7 +24,8 @@ export function FutureSelfMessage({ profile, metrics, riskScores }: FutureSelfMe
           profile,
           metrics,
           riskScores,
-          agentType: "future-self", // We'll handle this in the edge function if we can, or just default to planner
+          entries,
+          agentType: "future-self", 
         },
       });
 
@@ -56,9 +58,9 @@ export function FutureSelfMessage({ profile, metrics, riskScores }: FutureSelfMe
           <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center animate-pulse">
             <Bot className="w-4 h-4 text-accent" />
           </div>
-          <h3 className="text-sm font-display font-bold text-foreground">A Message from 2030</h3>
+          <h3 className="text-sm font-display font-bold text-foreground">A Message from 2040</h3>
         </div>
-
+ 
         {message ? (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
             <p className="text-sm italic text-muted-foreground leading-relaxed">
@@ -66,18 +68,18 @@ export function FutureSelfMessage({ profile, metrics, riskScores }: FutureSelfMe
             </p>
             <div className="flex items-center gap-1 text-[10px] text-accent font-medium uppercase tracking-widest">
               <Sparkles className="w-3 h-3" />
-              Manifesting your best self
+              Manifesting your 2040 self
             </div>
           </div>
         ) : (
           <div className="py-4 space-y-2">
             <p className="text-sm text-muted-foreground">
-              Curious what your future self has to say about your progress today?
+              Curious what your 2040 self has to say about your progress today?
             </p>
           </div>
         )}
       </div>
-
+ 
       <div className="mt-4">
         {!message ? (
           <Button 
@@ -88,7 +90,7 @@ export function FutureSelfMessage({ profile, metrics, riskScores }: FutureSelfMe
             className="w-full bg-background/50 hover:bg-accent hover:text-accent-foreground border-accent/20 group transition-all"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MessageSquare className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />}
-            Connect to 2030
+            Connect to 2040
           </Button>
         ) : (
           <Button 

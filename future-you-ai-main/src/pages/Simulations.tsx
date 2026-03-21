@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { LifestyleEntry } from "@/types/lifestyle";
-import { WearableMetric } from "@/pages/Dashboard";
+import { WearableMetric } from "@/types/lifestyle";
 import { HealthProfile } from "@/lib/medical-calculators";
 import { SplitScreenSimulation } from "@/components/simulations/SplitScreenSimulation";
-import { Play, Plus, TrendingUp, TrendingDown, Minus, Trash2, Smartphone } from "lucide-react";
+import { Play, Plus, TrendingUp, TrendingDown, Minus, Trash2, Smartphone, Sparkles, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -209,6 +209,22 @@ const Simulations = () => {
     }
   };
 
+  const create2040Preset = () => {
+    setName("FutureMe 2040 Vision");
+    setDescription("A long-term projection of your health assuming optimized lifestyle choices (15-year horizon).");
+    setActivityChange(50);
+    setSleepChange(1);
+    setDietChange(2);
+    setStressChange(-2);
+    setScreenChange(-2);
+    setTimeframe(14); // 2026 to 2040 is 14 years
+    setDialogOpen(true);
+    toast({
+      title: "2040 Vision Loaded",
+      description: "We've applied optimized settings for your 14-year projection.",
+    });
+  };
+
   const handleDeleteSimulation = async (id: string) => {
     const { error } = await supabase.from("simulations").delete().eq("id", id);
     if (!error) {
@@ -257,17 +273,26 @@ const Simulations = () => {
               </p>
             )}
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="hero" disabled={!baseline}>
-                <Plus className="w-4 h-4 mr-2" />
-                New Simulation
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-display">Create Future Scenario</DialogTitle>
-              </DialogHeader>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              onClick={create2040Preset}
+              className="border-accent/40 text-accent hover:bg-accent/10 group"
+            >
+              <Rocket className="w-4 h-4 mr-2 group-hover:animate-bounce" />
+              FutureMe 2040
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="hero" disabled={!baseline}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Simulation
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-display">Create Future Scenario</DialogTitle>
+                </DialogHeader>
 
               <div className="space-y-6 py-4">
                 {/* Name and description */}
@@ -302,7 +327,7 @@ const Simulations = () => {
                     value={[timeframe]}
                     onValueChange={(v) => setTimeframe(v[0])}
                     min={1}
-                    max={10}
+                    max={30}
                     step={1}
                   />
                 </div>
@@ -401,6 +426,7 @@ const Simulations = () => {
               </div>
             </DialogContent>
           </Dialog>
+        </div>
         </div>
 
         {/* Split-Screen Simulation View */}
