@@ -26,8 +26,6 @@ const ALL_WEARABLE_CARDS = [
   { type: "heart_rate",      label: "Heart Rate",  icon: Heart,      color: "text-red-500",    bg: "bg-red-500/10",    unit: "bpm" },
   { type: "steps",           label: "Steps",       icon: Footprints, color: "text-green-500",  bg: "bg-green-500/10",  unit: "steps" },
   { type: "calories_burned", label: "Calories",    icon: Flame,      color: "text-orange-500", bg: "bg-orange-500/10", unit: "kcal" },
-  { type: "distance",        label: "Distance",    icon: MapPin,     color: "text-blue-500",   bg: "bg-blue-500/10",   unit: "km" },
-  { type: "sleep_duration",  label: "Sleep",       icon: Moon,       color: "text-purple-500", bg: "bg-purple-500/10", unit: "hrs" },
   { type: "weight",          label: "Weight",      icon: Scale,      color: "text-yellow-500", bg: "bg-yellow-500/10", unit: "kg" },
   { type: "screen_time",     label: "Screen Time", icon: Monitor,    color: "text-blue-400",   bg: "bg-blue-400/10",   unit: "hrs" },
 ];
@@ -141,8 +139,16 @@ const Dashboard = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {ALL_WEARABLE_CARDS.map((card) => {
-              const data = getLatestWearable(card.type);
-              const hasData = !!data;
+              const wearData = getLatestWearable(card.type);
+              let value: number | string | null = null;
+              
+              if (wearData) {
+                value = wearData.value;
+              } else if (card.type === "weight" && profile?.weight_kg) {
+                value = profile.weight_kg;
+              }
+              
+              const hasData = value !== null;
               return (
                 <div
                   key={card.type}
@@ -163,9 +169,9 @@ const Dashboard = () => {
                   </div>
                   <div className="space-y-1">
                     <p className="text-2xl font-display font-bold text-foreground">
-                      {hasData ? data!.value : "--"}
+                      {hasData ? value : "--"}
                       <span className="text-xs font-medium text-muted-foreground ml-1">
-                        {hasData ? data!.unit : card.unit}
+                        {card.unit}
                       </span>
                     </p>
                     <p className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">

@@ -19,10 +19,13 @@ import {
   Search,
   Calendar,
   FileText,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { FloatingChatbot } from "./FloatingChatbot";
+import { useTheme } from "@/components/theme-provider";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -44,6 +47,7 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -266,6 +270,13 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
               <span>{format(new Date(), "EEEE, MMMM do")}</span>
             </div>
             <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="relative p-2.5 rounded-xl hover:bg-secondary text-muted-foreground transition-all"
+                title="Toggle Dark Mode"
+              >
+                {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
               <button className="relative p-2.5 rounded-xl hover:bg-secondary text-muted-foreground transition-all">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 border-2 border-card rounded-full" />
