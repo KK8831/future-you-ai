@@ -165,32 +165,56 @@ export const generateProfessionalPdf = (data: ReportData, filename: string = "Fu
     }
 
     if (output.riskInsights && output.riskInsights.length > 0) {
+      if (yPos > 260) {
+        addFooter(doc.getNumberOfPages());
+        doc.addPage();
+        addHeader(doc.getNumberOfPages());
+        yPos = 55;
+      }
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.text("Risk Indicators:", margin, yPos);
       yPos += 5;
       doc.setFont("helvetica", "normal");
       output.riskInsights.forEach((ri: any) => {
-        doc.text(`- ${ri.risk}: ${ri.explanation} (${ri.level.toUpperCase()})`, margin + 5, yPos);
-        yPos += 5;
-      });
-      yPos += 2;
-    }
-
-    if (output.recommendations && output.recommendations.length > 0) {
-      doc.setFont("helvetica", "bold");
-      doc.text("Key Recommendations:", margin, yPos);
-      yPos += 6;
-      doc.setFont("helvetica", "normal");
-      output.recommendations.forEach((rec: any) => {
-        if (yPos > 260) {
+        if (yPos > 265) {
           addFooter(doc.getNumberOfPages());
           doc.addPage();
           addHeader(doc.getNumberOfPages());
           yPos = 55;
         }
-        doc.text(`• [${rec.priority?.toUpperCase() || "MED"}] ${rec.title}: ${rec.description}`, margin + 5, yPos, { maxWidth: pageWidth - margin * 2 - 5 });
-        yPos += 10;
+        // FIX: wrap long risk text and measure actual height
+        const riText = `- ${ri.risk}: ${ri.explanation} (${ri.level.toUpperCase()})`;
+        const splitRi = doc.splitTextToSize(riText, pageWidth - margin * 2 - 5);
+        doc.text(splitRi, margin + 5, yPos);
+        yPos += splitRi.length * 5 + 2; // FIX: advance by actual line count, not flat +5
+      });
+      yPos += 2;
+    }
+
+    if (output.recommendations && output.recommendations.length > 0) {
+      if (yPos > 260) {
+        addFooter(doc.getNumberOfPages());
+        doc.addPage();
+        addHeader(doc.getNumberOfPages());
+        yPos = 55;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.text("Key Recommendations:", margin, yPos);
+      yPos += 6;
+      doc.setFont("helvetica", "normal");
+      output.recommendations.forEach((rec: any) => {
+        if (yPos > 255) {
+          addFooter(doc.getNumberOfPages());
+          doc.addPage();
+          addHeader(doc.getNumberOfPages());
+          yPos = 55;
+        }
+        // FIX: pre-split text and measure actual height before writing
+        const recText = `\u2022 [${rec.priority?.toUpperCase() || "MED"}] ${rec.title}: ${rec.description}`;
+        const splitRec = doc.splitTextToSize(recText, pageWidth - margin * 2 - 5);
+        doc.text(splitRec, margin + 5, yPos);
+        yPos += splitRec.length * 5 + 4; // FIX: advance by actual wrapped line count
       });
       yPos += 4;
     }
