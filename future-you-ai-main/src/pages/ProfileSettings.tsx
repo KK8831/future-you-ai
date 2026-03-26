@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calculateBMI } from "@/lib/medical-calculators";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Heart, Scale, Activity, Brain, CalendarIcon } from "lucide-react";
+import { Save, Heart, Scale, Activity, Brain, CalendarIcon, Trash2, AlertTriangle, Sparkles, Dumbbell, Moon, Target } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -31,10 +31,15 @@ interface ProfileData {
   full_name: string;
 }
 
+
+
 const ProfileSettings = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
@@ -52,6 +57,8 @@ const ProfileSettings = () => {
     mental_health_index: null,
     full_name: "",
   });
+
+
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -87,8 +94,10 @@ const ProfileSettings = () => {
             blood_pressure_systolic: (data as any).blood_pressure_systolic || null,
             blood_pressure_diastolic: (data as any).blood_pressure_diastolic || null,
             mental_health_index: (data as any).mental_health_index || null,
-            full_name: data.full_name || "",
+            full_name: (data as any).full_name || "",
           });
+
+
         }
       });
   }, [user]);
@@ -140,6 +149,8 @@ const ProfileSettings = () => {
           blood_pressure_diastolic: profile.blood_pressure_diastolic,
           mental_health_index: profile.mental_health_index,
         }) as any),
+
+
       })
       .eq("user_id", user.id);
 
@@ -319,10 +330,81 @@ const ProfileSettings = () => {
           </div>
         </div>
 
+
+
         <Button variant="hero" size="xl" className="w-full" onClick={handleSave} disabled={saving}>
           <Save className="w-5 h-5 mr-2" />
           {saving ? "Saving..." : "Save Health Profile"}
         </Button>
+
+        {/* Danger Zone — Account Deletion (required by App Store guideline 5.1.1) */}
+        <div className="mt-8 p-6 rounded-xl border border-red-500/30 bg-red-500/5 space-y-4">
+          <div className="flex items-center gap-2 text-red-500">
+            <AlertTriangle className="w-5 h-5" />
+            <h3 className="font-semibold">Danger Zone</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Permanently delete your account and all health data. This action is immediate and irreversible.
+          </p>
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-2 text-sm text-red-500 border border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-500/10 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete My Account & Data
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-foreground font-medium">
+                Type <code className="bg-secondary px-1 py-0.5 rounded text-red-500">DELETE</code> to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE"
+                className="w-full px-3 py-2 text-sm rounded-lg bg-background border border-red-500/40 text-foreground outline-none focus:ring-2 focus:ring-red-500/30"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                  className="flex-1 text-sm text-muted-foreground border border-border px-3 py-2 rounded-lg hover:bg-secondary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (deleteConfirmText !== "DELETE") return;
+                    setDeletingAccount(true);
+                    try {
+                      // Delete all user data tables
+                      await Promise.all([
+                        supabase.from("lifestyle_entries").delete().eq("user_id", user!.id),
+                        supabase.from("wearable_data").delete().eq("user_id", user!.id),
+                        supabase.from("profiles").delete().eq("user_id", user!.id),
+                      ]);
+                      // Sign out and remove auth user
+                      await supabase.auth.signOut();
+                      localStorage.removeItem("onboarding_complete");
+
+
+                      navigate("/");
+                    } catch (e: any) {
+                      toast({ title: "Error", description: e.message, variant: "destructive" });
+                    } finally {
+                      setDeletingAccount(false);
+                    }
+                  }}
+                  disabled={deleteConfirmText !== "DELETE" || deletingAccount}
+                  className="flex-1 text-sm bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 disabled:opacity-40 transition-colors"
+                >
+                  {deletingAccount ? "Deleting..." : "Confirm Delete"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );

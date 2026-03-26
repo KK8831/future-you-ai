@@ -6,15 +6,13 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { RiskPredictions } from "@/components/dashboard/RiskPredictions";
 import { MedicalRiskScores } from "@/components/dashboard/MedicalRiskScores";
 import { Recommendations } from "@/components/dashboard/Recommendations";
-import { LifestyleEntry } from "@/types/lifestyle";
-import { WearableMetric } from "@/pages/Dashboard";
+import { LifestyleEntry, WearableMetric } from "@/types/lifestyle";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Shield, Info, ClipboardPlus, Brain, FlaskConical, Download, RefreshCw, Heart, Footprints, Monitor } from "lucide-react";
+import { AlertTriangle, Shield, Info, ClipboardPlus, Brain, FlaskConical, Heart, Footprints, Monitor } from "lucide-react";
 import { usePdfExport } from "@/hooks/usePdfExport";
 
 const Predictions = () => {
   const [user, setUser] = useState<User | null>(null);
-  const { exportToPdf, isExporting } = usePdfExport({ filename: "Health_Predictions_Report.pdf" });
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<LifestyleEntry[]>([]);
@@ -73,6 +71,22 @@ const Predictions = () => {
     if (!error && data) setWearableData(data as WearableMetric[]);
   };
 
+  const [showSampleData, setShowSampleData] = useState(false);
+
+  const SAMPLE_ENTRIES: LifestyleEntry[] = [
+    { id: "s1", user_id: "u1", entry_date: "2024-03-20", physical_activity_minutes: 45, sleep_hours: 7.2, diet_quality_score: 8, stress_level: 3, screen_time_hours: 4.5, created_at: "", updated_at: "" },
+    { id: "s2", user_id: "u1", entry_date: "2024-03-21", physical_activity_minutes: 30, sleep_hours: 6.5, diet_quality_score: 7, stress_level: 5, screen_time_hours: 6.0, created_at: "", updated_at: "" },
+    { id: "s3", user_id: "u1", entry_date: "2024-03-22", physical_activity_minutes: 60, sleep_hours: 8.0, diet_quality_score: 9, stress_level: 2, screen_time_hours: 3.5, created_at: "", updated_at: "" },
+  ];
+
+  const SAMPLE_WEARABLES: WearableMetric[] = [
+    { data_type: "heart_rate", value: 68, unit: "bpm", recorded_at: "2024-03-22T10:00:00Z", source: "sample" },
+    { data_type: "steps", value: 10450, unit: "steps", recorded_at: "2024-03-22T22:00:00Z", source: "sample" },
+  ];
+
+  const activeEntries = showSampleData ? SAMPLE_ENTRIES : entries;
+  const activeWearable = showSampleData ? SAMPLE_WEARABLES : wearableData;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -85,32 +99,27 @@ const Predictions = () => {
     <DashboardLayout user={user}>
       <div className="space-y-8 animate-fade-in" id="predictions-report">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">Health Predictions</h1>
-            <p className="text-muted-foreground mt-1">
-              Validated epidemiological risk scores + AI-powered analysis
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => exportToPdf("predictions-report")}
-            disabled={isExporting || entries.length < 3}
-          >
-            {isExporting ? (
-              <span className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Exporting...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Download PDF
-              </span>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-display font-bold text-foreground">Health Predictions</h1>
+              <p className="text-muted-foreground mt-1">
+                Validated epidemiological risk scores + AI-powered analysis
+              </p>
+            </div>
+            {entries.length < 3 && (
+              <Button 
+                variant={showSampleData ? "hero" : "outline"} 
+                size="sm" 
+                onClick={() => setShowSampleData(!showSampleData)}
+                className="rounded-full text-[10px] h-7 px-3 uppercase tracking-widest font-bold"
+              >
+                {showSampleData ? "Viewing Sample" : "View Sample"}
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
 
-        {entries.length < 3 ? (
+        {activeEntries.length < 3 ? (
           <div className="p-8 rounded-xl bg-secondary/30 border border-border text-center">
             <Brain className="w-16 h-16 mx-auto mb-4 text-accent opacity-50" />
             <h3 className="text-xl font-display font-semibold text-foreground mb-2">
@@ -120,15 +129,26 @@ const Predictions = () => {
               Log at least 3 days of lifestyle data to generate accurate health risk predictions. 
               The more data you provide, the better our models can analyze your patterns.
             </p>
-            <Button asChild variant="hero">
-              <Link to="/log-entry">
-                <ClipboardPlus className="w-4 h-4 mr-2" />
-                Log Lifestyle Entry
-              </Link>
-            </Button>
+            <div className="flex items-center justify-center gap-4">
+              <Button asChild variant="hero">
+                <Link to="/log-entry">
+                  <ClipboardPlus className="w-4 h-4 mr-2" />
+                  Log Lifestyle Entry
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={() => setShowSampleData(true)}>
+                View Sample Data
+              </Button>
+            </div>
           </div>
         ) : (
           <>
+            {showSampleData && (
+              <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg flex items-center gap-2 text-accent text-sm">
+                <Info className="w-4 h-4" />
+                <span>You are viewing <strong>Sample Data</strong>. Log your own entries to see personal projections.</span>
+              </div>
+            )}
             {/* How it works */}
             <div className="p-6 rounded-xl bg-secondary/30 border border-border">
               <h3 className="text-lg font-display font-semibold text-foreground mb-4">
@@ -197,13 +217,13 @@ const Predictions = () => {
           )}
 
             {/* Medical Risk Scores - Validated Calculators */}
-            <MedicalRiskScores entries={entries} userId={user?.id} wearableData={wearableData} />
+            <MedicalRiskScores entries={activeEntries} userId={user?.id} wearableData={activeWearable} />
 
             {/* Pattern-based risk predictions */}
-            <RiskPredictions entries={entries} wearableData={wearableData} />
+            <RiskPredictions entries={activeEntries} wearableData={activeWearable} />
 
             {/* Recommendations */}
-            <Recommendations entries={entries} />
+            <Recommendations entries={activeEntries} />
 
             {/* Understanding section */}
             <div className="p-6 rounded-xl bg-card border border-border">

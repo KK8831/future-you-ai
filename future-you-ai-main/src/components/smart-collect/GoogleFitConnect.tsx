@@ -1,9 +1,10 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { RefreshCw, Check, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Capacitor } from "@capacitor/core";
+import { HealthConnect } from "capacitor-health-connect";
 
 interface GoogleFitConnectProps {
   userId?: string;
@@ -41,6 +42,34 @@ export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps
   const isNative = Capacitor.isNativePlatform();
 
   const connectGoogleFit = () => {
+    if (!GOOGLE_CLIENT_ID) {
+      toast({
+        title: "Google Client ID Missing",
+        description: "Please add VITE_GOOGLE_CLIENT_ID to your .env file to enable Google Fit synchronization.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentPort = window.location.port;
+    const isStandardPort = currentPort === "8080" || currentPort === "5173" || currentPort === "";
+
+    if (!isStandardPort) {
+      const redirectUri = window.location.origin;
+      toast({
+        title: "Port Mismatch Warning",
+        description: `Google expects '${redirectUri}' to be authorized. If you see a mismatch error, please add this to your Google Cloud Console.`,
+        action: (
+          <Button variant="outline" size="sm" onClick={() => {
+            navigator.clipboard.writeText(redirectUri);
+            toast({ title: "Copied!", description: "Redirect URI copied to clipboard." });
+          }}>
+            Copy URI
+          </Button>
+        ),
+      });
+    }
+
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
       redirect_uri: window.location.origin,
@@ -159,6 +188,89 @@ export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps
     }
   };
 
+  const syncHealthConnect = async () => {
+    if (!userId || !isNative) return;
+    setSyncing(true);
+
+    try {
+      // 1. Check if Health Connect is available
+      const { availability } = await HealthConnect.checkAvailability();
+      if (availability !== "Available") {
+        toast({
+          title: "Health Connect Not Available",
+          description: `Health Connect is ${availability}. Please install it from the Play Store.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 2. Request Permissions
+      const readPermissions: any[] = [
+        "Steps",
+        "ActiveCaloriesBurned",
+        "Distance",
+        "SleepSession",
+      ];
+      
+      const { hasAllPermissions } = await HealthConnect.requestHealthPermissions({
+        read: readPermissions,
+        write: [],
+      });
+
+      if (!hasAllPermissions) {
+        toast({ title: "Permission Denied", description: "You must grant permissions to sync your health data.", variant: "destructive" });
+        return;
+      }
+
+      // 3. Fetch Data (Last 24 hours)
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      const entries: WearableEntry[] = [];
+
+      // Fetch Steps
+      const stepsData = await HealthConnect.readRecords({
+        type: "Steps" as any,
+        timeRangeFilter: {
+          type: "between",
+          startTime: yesterday,
+          endTime: now,
+        },
+      });
+      const totalSteps = stepsData.records.reduce((sum: number, r: any) => sum + (r.count || 0), 0);
+      if (totalSteps > 0) entries.push({ user_id: userId, data_type: "steps", value: totalSteps, unit: "count", source: "health_connect" });
+
+      // Fetch Calories
+      const calData = await HealthConnect.readRecords({
+        type: "ActiveCaloriesBurned" as any,
+        timeRangeFilter: {
+          type: "between",
+          startTime: yesterday,
+          endTime: now,
+        },
+      });
+      const totalCals = calData.records.reduce((sum: number, r: any) => sum + (r.energy?.value || 0), 0);
+      if (totalCals > 0) entries.push({ user_id: userId, data_type: "calories_burned", value: Math.round(totalCals), unit: "kcal", source: "health_connect" });
+
+      if (entries.length > 0) {
+        const { error } = await supabase.from("wearable_data").insert(entries);
+        if (error) throw error;
+      }
+
+      onDataSynced?.(entries);
+      setSynced(true);
+      setTimeout(() => setSynced(false), 4000);
+      toast({
+        title: "Native Sync complete! 🚀",
+        description: entries.length > 0 ? `${entries.length} metrics from Health Connect.` : "No new data found.",
+      });
+    } catch (error: any) {
+      toast({ title: "Native Sync Failed", description: error?.message ?? "Make sure Health Connect is configured on your device.", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // Android app version
   if (isNative) {
     return (
@@ -171,8 +283,8 @@ export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps
             </div>
           ))}
         </div>
-        <Button disabled className="w-full">
-          <Smartphone className="w-4 h-4 mr-2" /> Use Health Connect on Android
+        <Button onClick={syncHealthConnect} disabled={syncing} className="w-full">
+          {synced ? <><Check className="w-4 h-4 mr-2" />Synced</> : syncing ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Syncing...</> : <><Smartphone className="w-4 h-4 mr-2" />Sync via Health Connect</>}
         </Button>
       </div>
     );

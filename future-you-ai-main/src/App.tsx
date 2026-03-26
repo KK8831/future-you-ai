@@ -1,20 +1,39 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import LogEntry from "./pages/LogEntry";
-import Simulations from "./pages/Simulations";
-import Predictions from "./pages/Predictions";
-import ProfileSettings from "./pages/ProfileSettings";
-import AuditDashboard from "./pages/AuditDashboard";
-import AIInsights from "./pages/AIInsights";
-import SmartCollect from "./pages/SmartCollect";
-import NotFound from "./pages/NotFound";
+import { OfflineBanner } from "./components/OfflineBanner";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// Lazy load all pages for better performance
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const LogEntry = lazy(() => import("./pages/LogEntry"));
+const Simulations = lazy(() => import("./pages/Simulations"));
+const Predictions = lazy(() => import("./pages/Predictions"));
+const ProfileSettings = lazy(() => import("./pages/ProfileSettings"));
+const AuditDashboard = lazy(() => import("./pages/AuditDashboard"));
+const AIInsights = lazy(() => import("./pages/AIInsights"));
+const SmartCollect = lazy(() => import("./pages/SmartCollect"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Admin = lazy(() => import("./pages/Admin"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Simple loading placeholder for Suspense
+const PageLoader = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center p-6">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 border-4 border-health-green/20 border-t-health-green rounded-full animate-spin" />
+      <p className="text-sm font-medium text-muted-foreground animate-pulse">Initializing FutureMe AI...</p>
+    </div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -25,20 +44,26 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ThemeProvider defaultTheme="light">
-          <Routes>
-            <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/log-entry" element={<LogEntry />} />
-          <Route path="/simulations" element={<Simulations />} />
-          <Route path="/predictions" element={<Predictions />} />
-          <Route path="/profile" element={<ProfileSettings />} />
-          <Route path="/audit" element={<AuditDashboard />} />
-          <Route path="/ai-insights" element={<AIInsights />} />
-          <Route path="/smart-collect" element={<SmartCollect />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+          <OfflineBanner />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/log-entry" element={<LogEntry />} />
+              <Route path="/simulations" element={<Simulations />} />
+              <Route path="/predictions" element={<Predictions />} />
+              <Route path="/profile" element={<ProfileSettings />} />
+              <Route path="/audit" element={<AuditDashboard />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/ai-insights" element={<AIInsights />} />
+              <Route path="/smart-collect" element={<SmartCollect />} />
+              <Route path="/privacy-policy" element={<ErrorBoundary section="Privacy Policy"><PrivacyPolicy /></ErrorBoundary>} />
+              <Route path="/terms" element={<ErrorBoundary section="Terms of Service"><TermsOfService /></ErrorBoundary>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </ThemeProvider>
       </BrowserRouter>
     </TooltipProvider>

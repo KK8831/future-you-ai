@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Activity, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -10,14 +11,8 @@ export function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-primary/80 backdrop-blur-xl border-b border-white/10">
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-accent/20 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-accent" />
-            </div>
-            <span className="text-lg font-display font-bold text-primary-foreground">
-              FutureMe AI
-            </span>
+          <Link to="/" className="hover:opacity-90 transition-opacity">
+            <BrandLogo size="md" />
           </Link>
 
           {/* Desktop Navigation */}

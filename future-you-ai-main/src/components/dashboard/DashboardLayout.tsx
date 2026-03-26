@@ -3,14 +3,11 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import {
-  Activity,
   LayoutDashboard,
   ClipboardPlus,
   TrendingUp,
   Target,
   LogOut,
-  Menu,
-  X,
   Bot,
   Shield,
   UserCircle,
@@ -22,6 +19,7 @@ import {
   Moon,
   Sun,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { FloatingChatbot } from "./FloatingChatbot";
@@ -40,11 +38,23 @@ const navItems = [
   { label: "Predictions",  icon: Target,          href: "/predictions" },
   { label: "Simulations",  icon: TrendingUp,      href: "/simulations" },
   { label: "AI Insights",  icon: Bot,             href: "/ai-insights" },
+];
+
+const adminItems = [
+  { label: "Admin Panel",  icon: Shield,          href: "/admin" },
   { label: "Audit Log",    icon: Shield,          href: "/audit" },
 ];
 
+
+const mobileNavItems = [
+  { label: "Home",       icon: LayoutDashboard, href: "/dashboard" },
+  { label: "AI",         icon: Bot,             href: "/ai-insights" },
+  { label: "Log",        icon: ClipboardPlus,   href: "/log-entry" },
+  { label: "Scan",       icon: Smartphone,      href: "/smart-collect" },
+  { label: "Profile",    icon: UserCircle,      href: "/profile" },
+];
+
 export function DashboardLayout({ children, user }: DashboardLayoutProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
@@ -53,6 +63,14 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
     await supabase.auth.signOut();
     navigate("/");
   };
+
+  const isAdmin = user?.email?.toLowerCase().includes("admin") || 
+                  user?.email?.toLowerCase() === "korekedar143@gmail.com" ||
+                  user?.user_metadata?.role === "admin";
+
+
+  const visibleNavItems = isAdmin ? [...navItems, ...adminItems] : navItems;
+
 
   return (
     <div className="min-h-screen bg-secondary/30 flex">
@@ -72,30 +90,17 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
         {/* Logo */}
         <div
-          className="h-16 flex items-center gap-3 px-5"
+          className="h-20 flex items-center px-5"
           style={{ borderBottom: "1px solid hsl(var(--sidebar-border))" }}
         >
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: "hsl(var(--sidebar-primary) / 0.2)" }}
-          >
-            <Activity
-              className="w-5 h-5"
-              style={{ color: "hsl(var(--sidebar-primary))" }}
-            />
-          </div>
-          <span
-            className="text-lg font-display font-bold"
-            style={{ color: "hsl(var(--sidebar-foreground))" }}
-          >
-            FutureMe AI
-          </span>
+          <BrandLogo size="md" />
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = location.pathname === item.href;
+
             return (
               <Link
                 key={item.href}
@@ -192,66 +197,47 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
         </div>
       </aside>
 
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-card border-b border-border flex items-center justify-between px-4">
-        <Link to="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Activity className="w-4 h-4 text-accent" />
-          </div>
-          <span className="font-display font-bold text-foreground">
-            FutureMe AI
-          </span>
+      {/* Mobile Header (Safe Area optimized) */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4 h-14 pt-[env(safe-area-inset-top)]">
+        <Link to="/dashboard">
+          <BrandLogo size="sm" />
         </Link>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 text-foreground"
-        >
-          {mobileMenuOpen ? (
-            <X className="w-5 h-5" />
-          ) : (
-            <Menu className="w-5 h-5" />
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button className="p-2 text-muted-foreground hover:text-foreground transition-colors relative">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-2.5 right-2 w-2 h-2 bg-red-500 border-2 border-card rounded-full" />
+          </button>
+        </div>
       </div>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-card pt-14">
-          <nav className="p-3 space-y-1">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all",
-                    isActive
-                      ? "bg-accent text-accent-foreground font-semibold"
-                      : "text-muted-foreground hover:bg-secondary"
-                  )}
-                >
-                  <item.icon className="w-[18px] h-[18px]" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border">
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary"
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border flex justify-around items-center h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] px-2 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
+        {mobileNavItems.map((item) => {
+          const isActive = location.pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center w-full h-full gap-1 transition-colors",
+                isActive ? "text-accent" : "text-muted-foreground hover:text-foreground"
+              )}
             >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </div>
-      )}
+              <item.icon className={cn("w-5 h-5", isActive && "stroke-[2.5px]")} />
+              <span className="text-[10px] font-medium leading-none">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 lg:ml-[240px] pt-14 lg:pt-0">
+      {/* Main Content with dynamic padding for safe areas */}
+      <main className="flex-1 lg:ml-[240px] pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 relative min-h-screen">
         {/* Top Bar — refined alignment and depth */}
         <div className="hidden lg:flex h-16 items-center justify-between px-8 bg-card border-b border-border sticky top-0 z-30 shadow-sm backdrop-blur-md bg-card/80">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
@@ -282,7 +268,7 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
                 <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 border-2 border-card rounded-full" />
               </button>
               <Link
-                to="/ai-insights"
+                to="/ai-insights?action=export"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-all shadow-md shadow-accent/20 active:scale-95"
               >
                 <FileText className="w-4 h-4" />

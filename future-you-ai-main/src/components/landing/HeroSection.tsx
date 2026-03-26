@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Activity, Brain, Heart } from "lucide-react";
+import { ArrowRight, Brain, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export function HeroSection() {
   return (
@@ -28,7 +29,7 @@ export function HeroSection() {
           {/* Left content */}
           <div className="text-center lg:text-left space-y-8 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/20 border border-accent/30 text-accent text-sm font-medium">
-              <Activity className="w-4 h-4" />
+              <BrandLogo iconOnly size="sm" />
               <span>AI-Powered Preventive Healthcare</span>
             </div>
 
@@ -88,7 +89,7 @@ export function HeroSection() {
                     <Heart className="w-6 h-6 text-health-green" />
                   </div>
                   <div className="absolute top-1/2 -right-20 -translate-y-1/2 p-3 rounded-xl bg-health-blue/20 border border-health-blue/40 animate-float delay-200">
-                    <Activity className="w-6 h-6 text-health-blue" />
+                    <Heart className="w-6 h-6 text-health-blue" />
                   </div>
                   <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 p-3 rounded-xl bg-health-amber/20 border border-health-amber/40 animate-float delay-300">
                     <Brain className="w-6 h-6 text-health-amber" />
@@ -98,7 +99,7 @@ export function HeroSection() {
                   <div className="w-32 h-32 rounded-full bg-accent/30 flex items-center justify-center animate-pulse-ring">
                     <div className="w-24 h-24 rounded-full bg-accent/50 flex items-center justify-center">
                       <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center shadow-lg health-glow">
-                        <Activity className="w-8 h-8 text-accent-foreground" />
+                        <BrandLogo iconOnly size="lg" />
                       </div>
                     </div>
                   </div>
@@ -109,9 +110,9 @@ export function HeroSection() {
               <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 400">
                 <defs>
                   <linearGradient id="streamGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="hsl(174 72% 40%)" stopOpacity="0" />
-                    <stop offset="50%" stopColor="hsl(174 72% 40%)" stopOpacity="0.6" />
-                    <stop offset="100%" stopColor="hsl(174 72% 40%)" stopOpacity="0" />
+                    <stop offset="0%" stopColor="hsl(22 90% 55%)" stopOpacity="0" />
+                    <stop offset="50%" stopColor="hsl(22 90% 55%)" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="hsl(22 90% 55%)" stopOpacity="0" />
                   </linearGradient>
                 </defs>
                 <circle cx="200" cy="200" r="180" fill="none" stroke="url(#streamGradient)" strokeWidth="1" strokeDasharray="5 10" className="animate-spin" style={{ animationDuration: '20s' }} />

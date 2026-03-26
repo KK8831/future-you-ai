@@ -12,7 +12,7 @@ import { LifestyleEntry } from "@/types/lifestyle";
 import { WearableMetric } from "@/types/lifestyle";
 import { HealthProfile } from "@/lib/medical-calculators";
 import { SplitScreenSimulation } from "@/components/simulations/SplitScreenSimulation";
-import { Play, Plus, TrendingUp, TrendingDown, Minus, Trash2, Smartphone, Sparkles, Rocket } from "lucide-react";
+import { Play, Plus, TrendingUp, TrendingDown, Minus, Trash2, Smartphone, Sparkles, Rocket, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -180,6 +180,8 @@ const Simulations = () => {
     return Math.max(0, Math.round(actScore + sleepScore + dietScore + stressScore + screenScore + hrPenalty));
   }, [projectedValues, wearableHeartRate]);
 
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const handleCreateSimulation = async () => {
     if (!user || !name.trim()) return;
     setSaving(true);
@@ -202,10 +204,16 @@ const Simulations = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      setIsSuccess(true);
       toast({ title: "Simulation created!", description: "Your future scenario has been saved." });
-      setDialogOpen(false);
-      resetForm();
-      fetchData();
+      
+      // Delay closure to show success state
+      setTimeout(() => {
+        setDialogOpen(false);
+        setIsSuccess(false);
+        resetForm();
+        fetchData();
+      }, 1500);
     }
   };
 
@@ -294,136 +302,148 @@ const Simulations = () => {
                   <DialogTitle className="text-xl font-display">Create Future Scenario</DialogTitle>
                 </DialogHeader>
 
-              <div className="space-y-6 py-4">
-                {/* Name and description */}
-                <div className="space-y-4">
-                  <div>
-                    <Label>Scenario Name</Label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="E.g., Active Lifestyle, Better Sleep..."
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label>Description (optional)</Label>
-                    <Textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe this scenario..."
-                      className="mt-1"
-                    />
-                  </div>
+                <div className="space-y-6 py-4">
+                  {isSuccess ? (
+                    <div className="py-12 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                      <div className="w-20 h-20 bg-health-green/20 rounded-full flex items-center justify-center mb-4">
+                        <Check className="w-10 h-10 text-health-green animate-bounce" />
+                      </div>
+                      <h3 className="text-xl font-display font-bold text-foreground">Simulation Created!</h3>
+                      <p className="text-muted-foreground mt-2">Updating your future timeline...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Name and description */}
+                      <div className="space-y-4">
+                        <div>
+                          <Label>Scenario Name</Label>
+                          <Input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="E.g., Active Lifestyle, Better Sleep..."
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label>Description (optional)</Label>
+                          <Textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Describe this scenario..."
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Timeframe */}
+                      <div className="p-4 rounded-lg bg-secondary/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label>Projection Timeframe</Label>
+                          <span className="font-bold text-accent">{timeframe} years</span>
+                        </div>
+                        <Slider
+                          value={[timeframe]}
+                          onValueChange={(v) => setTimeframe(v[0])}
+                          min={1}
+                          max={30}
+                          step={1}
+                        />
+                      </div>
+
+                      {/* Changes */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Lifestyle Changes</h4>
+
+                        <div className="p-4 rounded-lg border border-border">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>Physical Activity</Label>
+                            <span className={`font-bold ${activityChange > 0 ? "text-health-green" : activityChange < 0 ? "text-health-red" : "text-muted-foreground"}`}>
+                              {activityChange > 0 ? "+" : ""}{activityChange}%
+                            </span>
+                          </div>
+                          <Slider value={[activityChange]} onValueChange={(v) => setActivityChange(v[0])} min={-50} max={100} step={10} />
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>-50%</span><span>No change</span><span>+100%</span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 rounded-lg border border-border">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>Sleep Duration</Label>
+                            <span className={`font-bold ${sleepChange > 0 ? "text-health-green" : sleepChange < 0 ? "text-health-red" : "text-muted-foreground"}`}>
+                              {sleepChange > 0 ? "+" : ""}{sleepChange} hrs
+                            </span>
+                          </div>
+                          <Slider value={[sleepChange]} onValueChange={(v) => setSleepChange(v[0])} min={-3} max={3} step={0.5} />
+                        </div>
+
+                        <div className="p-4 rounded-lg border border-border">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>Diet Quality Score</Label>
+                            <span className={`font-bold ${dietChange > 0 ? "text-health-green" : dietChange < 0 ? "text-health-red" : "text-muted-foreground"}`}>
+                              {dietChange > 0 ? "+" : ""}{dietChange}
+                            </span>
+                          </div>
+                          <Slider value={[dietChange]} onValueChange={(v) => setDietChange(v[0])} min={-4} max={4} step={1} />
+                        </div>
+
+                        <div className="p-4 rounded-lg border border-border">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>Stress Level</Label>
+                            <span className={`font-bold ${stressChange < 0 ? "text-health-green" : stressChange > 0 ? "text-health-red" : "text-muted-foreground"}`}>
+                              {stressChange > 0 ? "+" : ""}{stressChange}
+                            </span>
+                          </div>
+                          <Slider value={[stressChange]} onValueChange={(v) => setStressChange(v[0])} min={-4} max={4} step={1} />
+                        </div>
+
+                        <div className="p-4 rounded-lg border border-border">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>Screen Time</Label>
+                            <span className={`font-bold ${screenChange < 0 ? "text-health-green" : screenChange > 0 ? "text-health-red" : "text-muted-foreground"}`}>
+                              {screenChange > 0 ? "+" : ""}{screenChange} hrs
+                            </span>
+                          </div>
+                          <Slider value={[screenChange]} onValueChange={(v) => setScreenChange(v[0])} min={-4} max={4} step={0.5} />
+                        </div>
+                      </div>
+
+                      {/* Projected results */}
+                      {projectedValues && (
+                        <div className="p-4 rounded-lg bg-accent/10 border border-accent/30">
+                          <h4 className="font-medium text-accent mb-3">Projected Outcome in {timeframe} Years</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Health Score:</span>
+                              <span className="ml-2 font-bold text-foreground">{projectedHealthScore}%</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Activity:</span>
+                              <span className="ml-2 font-bold text-foreground">{projectedValues.activity} min/day</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Sleep:</span>
+                              <span className="ml-2 font-bold text-foreground">{projectedValues.sleep} hrs</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Diet:</span>
+                              <span className="ml-2 font-bold text-foreground">{projectedValues.diet}/10</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={handleCreateSimulation}
+                        variant="hero"
+                        className="w-full"
+                        disabled={!name.trim() || saving}
+                      >
+                        {saving ? "Creating..." : "Create Simulation"}
+                      </Button>
+                    </>
+                  )}
                 </div>
-
-                {/* Timeframe */}
-                <div className="p-4 rounded-lg bg-secondary/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Projection Timeframe</Label>
-                    <span className="font-bold text-accent">{timeframe} years</span>
-                  </div>
-                  <Slider
-                    value={[timeframe]}
-                    onValueChange={(v) => setTimeframe(v[0])}
-                    min={1}
-                    max={30}
-                    step={1}
-                  />
-                </div>
-
-                {/* Changes */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Lifestyle Changes</h4>
-
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label>Physical Activity</Label>
-                      <span className={`font-bold ${activityChange > 0 ? "text-health-green" : activityChange < 0 ? "text-health-red" : "text-muted-foreground"}`}>
-                        {activityChange > 0 ? "+" : ""}{activityChange}%
-                      </span>
-                    </div>
-                    <Slider value={[activityChange]} onValueChange={(v) => setActivityChange(v[0])} min={-50} max={100} step={10} />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>-50%</span><span>No change</span><span>+100%</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label>Sleep Duration</Label>
-                      <span className={`font-bold ${sleepChange > 0 ? "text-health-green" : sleepChange < 0 ? "text-health-red" : "text-muted-foreground"}`}>
-                        {sleepChange > 0 ? "+" : ""}{sleepChange} hrs
-                      </span>
-                    </div>
-                    <Slider value={[sleepChange]} onValueChange={(v) => setSleepChange(v[0])} min={-3} max={3} step={0.5} />
-                  </div>
-
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label>Diet Quality Score</Label>
-                      <span className={`font-bold ${dietChange > 0 ? "text-health-green" : dietChange < 0 ? "text-health-red" : "text-muted-foreground"}`}>
-                        {dietChange > 0 ? "+" : ""}{dietChange}
-                      </span>
-                    </div>
-                    <Slider value={[dietChange]} onValueChange={(v) => setDietChange(v[0])} min={-4} max={4} step={1} />
-                  </div>
-
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label>Stress Level</Label>
-                      <span className={`font-bold ${stressChange < 0 ? "text-health-green" : stressChange > 0 ? "text-health-red" : "text-muted-foreground"}`}>
-                        {stressChange > 0 ? "+" : ""}{stressChange}
-                      </span>
-                    </div>
-                    <Slider value={[stressChange]} onValueChange={(v) => setStressChange(v[0])} min={-4} max={4} step={1} />
-                  </div>
-
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label>Screen Time</Label>
-                      <span className={`font-bold ${screenChange < 0 ? "text-health-green" : screenChange > 0 ? "text-health-red" : "text-muted-foreground"}`}>
-                        {screenChange > 0 ? "+" : ""}{screenChange} hrs
-                      </span>
-                    </div>
-                    <Slider value={[screenChange]} onValueChange={(v) => setScreenChange(v[0])} min={-4} max={4} step={0.5} />
-                  </div>
-                </div>
-
-                {/* Projected results */}
-                {projectedValues && (
-                  <div className="p-4 rounded-lg bg-accent/10 border border-accent/30">
-                    <h4 className="font-medium text-accent mb-3">Projected Outcome in {timeframe} Years</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Health Score:</span>
-                        <span className="ml-2 font-bold text-foreground">{projectedHealthScore}%</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Activity:</span>
-                        <span className="ml-2 font-bold text-foreground">{projectedValues.activity} min/day</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Sleep:</span>
-                        <span className="ml-2 font-bold text-foreground">{projectedValues.sleep} hrs</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Diet:</span>
-                        <span className="ml-2 font-bold text-foreground">{projectedValues.diet}/10</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <Button
-                  onClick={handleCreateSimulation}
-                  variant="hero"
-                  className="w-full"
-                  disabled={!name.trim() || saving}
-                >
-                  {saving ? "Creating..." : "Create Simulation"}
-                </Button>
-              </div>
             </DialogContent>
           </Dialog>
         </div>

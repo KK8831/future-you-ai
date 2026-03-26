@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Activity, Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
@@ -16,6 +17,9 @@ const authSchema = z.object({
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -26,17 +30,33 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    const checkOnboarding = async (user: User) => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("age, health_goals")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (!profile || !profile.age || !profile.health_goals || (Array.isArray(profile.health_goals) && profile.health_goals.length === 0)) {
+        navigate("/onboarding");
+      } else {
+        navigate("/dashboard");
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session?.user) {
-          navigate("/dashboard");
+          if (event === "SIGNED_IN") {
+            checkOnboarding(session.user);
+          }
         }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        navigate("/dashboard");
+        checkOnboarding(session.user);
       }
     });
 
@@ -127,6 +147,23 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      setForgotSent(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex-1 flex">
@@ -139,11 +176,8 @@ const Auth = () => {
         </div>
 
         <div className="relative z-10 flex flex-col justify-center px-16 text-primary-foreground">
-          <Link to="/" className="flex items-center gap-2 mb-12">
-            <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
-              <Activity className="w-6 h-6 text-accent" />
-            </div>
-            <span className="text-2xl font-display font-bold">FutureMe AI</span>
+          <Link to="/" className="mb-12 block hover:opacity-90 transition-opacity">
+            <BrandLogo size="lg" className="text-primary-foreground" />
           </Link>
 
           <h1 className="text-4xl xl:text-5xl font-display font-bold mb-6 leading-tight">
@@ -176,11 +210,8 @@ const Auth = () => {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-accent" />
-              </div>
-              <span className="text-xl font-display font-bold">FutureMe AI</span>
+            <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+              <BrandLogo size="md" />
             </Link>
           </div>
 
@@ -268,7 +299,45 @@ const Auth = () => {
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}
+              {/* Forgot Password link — only show in login mode */}
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-xs text-muted-foreground hover:text-accent transition-colors mt-1 text-right w-full"
+                >
+                  Forgot password?
+                </button>
+              )}
             </div>
+
+            {isForgotPassword && (
+              <div className="p-4 rounded-xl bg-secondary/50 border border-border space-y-3">
+                {forgotSent ? (
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-medium text-foreground">✉️ Reset email sent!</p>
+                    <p className="text-xs text-muted-foreground">Check your inbox for a password reset link from FutureMe AI.</p>
+                    <button onClick={() => { setIsForgotPassword(false); setForgotSent(false); }} className="text-xs text-accent hover:underline">Back to sign in</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleForgotPassword} className="space-y-3">
+                    <p className="text-xs text-muted-foreground">Enter your email and we'll send a reset link.</p>
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="h-10 text-sm"
+                      required
+                    />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setIsForgotPassword(false)} className="flex-1 text-xs text-muted-foreground hover:text-foreground py-2 rounded-lg border border-border transition-colors">Cancel</button>
+                      <Button type="submit" size="sm" className="flex-1" disabled={loading}>{loading ? "Sending..." : "Send Reset Link"}</Button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"
