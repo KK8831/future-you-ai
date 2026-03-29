@@ -44,15 +44,28 @@ const AuditDashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("audit_logs")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(100)
-      .then(({ data }) => {
-        if (data) setLogs(data as AuditLog[]);
-      });
+    const isAdmin = user.email?.toLowerCase() === "korekedar143@gmail.com";
+
+    const fetchLogs = async () => {
+      let query = supabase
+        .from("audit_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      // Admin sees ALL user logs; regular users see only their own
+      if (!isAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error("Audit logs fetch error:", error);
+      }
+      if (data) setLogs(data as AuditLog[]);
+    };
+
+    fetchLogs();
   }, [user]);
 
   const filteredLogs = filter === "all" ? logs : logs.filter((l) => l.action === filter);

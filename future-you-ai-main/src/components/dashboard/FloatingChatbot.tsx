@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const QUICK_ACTIONS = [
   { label: "🏠 Home Remedies", prompt: "I can't go to the hospital right now. Can you suggest some safe home remedies for common ailments like colds, stress, or minor pains?" },
@@ -95,6 +96,88 @@ const KNOWLEDGE_BASE: Record<string, { keywords: string[], variations: string[] 
 > **Scientific Rationale:** High polyphenol and fiber intake from plant sources is strongly correlated with reduced systemic inflammation markers.`
     ]
   },
+  high_protein_diet: {
+    keywords: ["high protein", "muscle", "bulking", "protein rich", "mass"],
+    variations: [
+      `**High-Protein Performance Diet:**
+
+| Meal | Food | Protein |
+|:---|:---|:---:|
+| **Breakfast** | 4 Egg Whites + 2 Whole Eggs, Oats | ~35g |
+| **Snack** | Greek Yogurt + Almonds | ~20g |
+| **Lunch** | Grilled Chicken Breast (200g) + Quinoa + Broccoli | ~50g |
+| **Snack** | Protein Shake + Banana | ~30g |
+| **Dinner** | Salmon Fillet (200g) + Sweet Potato + Spinach | ~45g |
+| **Before Bed** | Cottage Cheese + Walnuts | ~25g |
+
+**Daily Total: ~205g Protein**
+
+> **Scientific Rationale:** Distributing 1.6–2.2g of protein per kg of body weight across 5–6 meals optimizes Muscle Protein Synthesis (MPS) and prevents catabolism during rest periods.`
+    ]
+  },
+  weight_loss_diet: {
+    keywords: ["weight loss", "lose weight", "fat loss", "slim", "lean", "calorie deficit"],
+    variations: [
+      `**Science-Based Fat Loss Protocol:**
+
+### Nutrition
+- **Caloric Deficit:** Reduce intake by 300–500 kcal below your TDEE (not more).
+- **Protein:** Keep at 2g/kg body weight to preserve lean mass during a cut.
+- **Fiber:** 35g+ daily to increase satiety and reduce cravings.
+
+### Meal Structure
+| Meal | Example |
+|:---|:---|
+| **Breakfast** | Veggie Omelette (3 eggs, spinach, tomatoes) |
+| **Lunch** | Large salad with grilled chicken + olive oil dressing |
+| **Dinner** | Baked fish with roasted vegetables |
+| **Snack** | Apple + 10 almonds |
+
+> **Scientific Rationale:** A moderate caloric deficit combined with high protein intake minimizes muscle loss while promoting fat oxidation. Aggressive deficits (>700 kcal) increase cortisol and metabolic adaptation.`
+    ]
+  },
+  remedies: {
+    keywords: ["remedy", "remedies", "home", "natural", "cold", "cough", "headache", "fever", "pain", "sore throat", "stomach"],
+    variations: [
+      `**Evidence-Based Home Remedies:**
+
+### Cold & Sore Throat
+- **Honey + Warm Water + Lemon:** Antimicrobial and soothing — take 1 tbsp honey in warm water 3x/day.
+- **Saltwater Gargle:** 1/2 tsp salt in warm water. Gargle 3x daily to reduce throat inflammation.
+- **Steam Inhalation:** Add eucalyptus oil to hot water and breathe in steam for 10 min.
+
+### Headache & Pain
+- **Hydration:** Dehydration is the #1 cause of non-clinical headaches. Drink 500ml immediately.
+- **Peppermint Oil:** Apply diluted peppermint oil to temples for tension relief.
+- **Cold Compress:** 15 min on, 15 min off to reduce inflammation.
+
+### Digestive Issues
+- **Ginger Tea:** Anti-nausea and aids gastric motility.
+- **Fennel Seeds:** Chew 1/2 tsp after meals to reduce bloating.
+
+> **Important:** These are supportive measures. Persistent symptoms lasting >3 days should be evaluated by a healthcare professional.`
+    ]
+  },
+  longevity: {
+    keywords: ["longevity", "lifespan", "healthspan", "aging", "live longer", "anti-aging"],
+    variations: [
+      `**Longevity Optimization Protocol:**
+
+### The 5 Pillars of Healthspan
+1. **VO2 Max:** The #1 predictor of all-cause mortality. Train Zone 2 + Zone 5 weekly.
+2. **Muscle Mass:** Resistance train 3x/week — sarcopenia (muscle loss) accelerates aging.
+3. **Sleep Quality:** 7–8 hours of deep + REM sleep clears brain toxins (glymphatic system).
+4. **Metabolic Health:** Keep fasting glucose <100 mg/dL, maintain insulin sensitivity.
+5. **Emotional Regulation:** Chronic stress raises cortisol, accelerating biological aging.
+
+### Daily Non-Negotiables
+- **Morning:** 15 min sunlight + 10 min movement
+- **Post-Meal:** 10 min walk (lowers glucose by 30%)
+- **Evening:** No screens 1 hour before bed
+
+> **Scientific Rationale:** These 5 factors collectively explain >80% of the variance in biological aging rate across longitudinal studies.`
+    ]
+  },
   exercise: {
     keywords: ["exercise", "fitness", "workout", "training", "activity", "gym", "run", "lift"],
     variations: [
@@ -170,6 +253,8 @@ const generateLocalResponse = (input: string, profile: any): string => {
   const isAskingForWeekly = query.includes("weekly") || query.includes("week") || query.includes("7 day") || query.includes("3 day");
   const isKeto = query.includes("keto") || query.includes("low carb");
   const isVegan = query.includes("vegan") || query.includes("plant based");
+  const isHighProtein = query.includes("protein") || query.includes("muscle") || query.includes("bulk");
+  const isWeightLoss = query.includes("weight loss") || query.includes("lose weight") || query.includes("fat loss") || query.includes("slim");
 
   // Custom logic for predictions
   if (query.includes("predict") || query.includes("2040")) {
@@ -183,6 +268,8 @@ const generateLocalResponse = (input: string, profile: any): string => {
     if (KNOWLEDGE_BASE[category].keywords.some(k => query.includes(k))) {
       // Specialized Intent Selection
       if (category === 'diet') {
+        if (isHighProtein) return KNOWLEDGE_BASE.high_protein_diet.variations[0];
+        if (isWeightLoss) return KNOWLEDGE_BASE.weight_loss_diet.variations[0];
         if (isAskingForWeekly) return KNOWLEDGE_BASE.weekly_diet.variations[0];
         if (isKeto) return KNOWLEDGE_BASE.keto_diet.variations[0];
         if (isVegan) return KNOWLEDGE_BASE.vegan_diet.variations[0];
@@ -202,7 +289,38 @@ const generateLocalResponse = (input: string, profile: any): string => {
     }
   }
 
-  return "I'm operating in **High-Privacy Local Mode**. I have specialized health data for **Diet, Exercise, Sleep, Heart Health, and Stress**. How can I assist with your wellness goals today?";
+  // Smart general-purpose fallback for ANY question
+  const words = query.split(/\s+/);
+  const hasQuestion = query.includes("?") || query.includes("how") || query.includes("what") || query.includes("why") || query.includes("can") || query.includes("should") || query.includes("tell") || query.includes("explain") || query.includes("help");
+
+  if (hasQuestion || words.length > 2) {
+    // Try to give a helpful general answer
+    if (query.includes("water") || query.includes("hydrat")) {
+      const weight = profile?.weight_kg || 70;
+      const liters = Math.round(weight * 0.033 * 10) / 10;
+      return `**Hydration Recommendation:**\n\nBased on your weight (${weight}kg), your daily water target is **${liters} liters**.\n\n### Tips\n- Drink 500ml immediately after waking\n- Keep a bottle visible throughout the day\n- Increase intake by 500ml on exercise days\n\n> A 2% drop in hydration can impair cognitive function by up to 25%.`;
+    }
+    if (query.includes("bmi") || query.includes("body mass")) {
+      const h = profile?.height_cm; const w = profile?.weight_kg;
+      if (h && w) {
+        const bmi = (w / Math.pow(h / 100, 2)).toFixed(1);
+        const cat = Number(bmi) < 18.5 ? "Underweight" : Number(bmi) < 25 ? "Normal" : Number(bmi) < 30 ? "Overweight" : "Obese";
+        return `**Your BMI Analysis:**\n\n- **BMI:** ${bmi} (${cat})\n- **Height:** ${h} cm\n- **Weight:** ${w} kg\n\n> BMI is a screening tool, not a diagnostic one. Athletes with high muscle mass may have elevated BMI without excess body fat.`;
+      }
+      return `**BMI (Body Mass Index):**\n\nBMI = Weight(kg) ÷ Height(m)²\n\n| Category | BMI Range |\n|:---|:---|\n| Underweight | < 18.5 |\n| Normal | 18.5 – 24.9 |\n| Overweight | 25.0 – 29.9 |\n| Obese | ≥ 30.0 |\n\n> Update your profile with height and weight for a personalized calculation.`;
+    }
+    if (query.includes("calorie") || query.includes("tdee") || query.includes("how much should i eat")) {
+      return `**Caloric Needs Estimation:**\n\n### Quick Formula (Mifflin-St Jeor)\n- **Men:** (10 × weight in kg) + (6.25 × height in cm) − (5 × age) + 5\n- **Women:** (10 × weight in kg) + (6.25 × height in cm) − (5 × age) − 161\n\n### Activity Multiplier\n| Level | Multiply by |\n|:---|:---:|\n| Sedentary | 1.2 |\n| Lightly Active | 1.375 |\n| Moderately Active | 1.55 |\n| Very Active | 1.725 |\n\n> For weight loss: subtract 300–500 kcal. For muscle gain: add 200–400 kcal.`;
+    }
+    if (query.includes("vitamin") || query.includes("supplement")) {
+      return `**Essential Supplements Guide:**\n\n| Supplement | Benefit | Recommended |
+|:---|:---|:---:|\n| **Vitamin D3** | Immune function, bone health | 2000–4000 IU/day |\n| **Omega-3** | Heart, brain, inflammation | 1–2g EPA+DHA/day |\n| **Magnesium** | Sleep, muscle recovery | 200–400mg before bed |\n| **Vitamin B12** | Energy, nerve function | 1000mcg (especially if plant-based) |\n| **Zinc** | Immune support, hormones | 15–30mg/day |\n\n> Always get bloodwork before starting high-dose supplementation.`;
+    }
+    // General catch-all with a helpful response
+    return `**Thank you for your question!**\n\nI'm your FutureMe Health Assistant running in **Local Mode**. While I specialize in evidence-based health guidance, here's what I can help with:\n\n### My Specializations\n| Topic | Ask me about... |\n|:---|:---|\n| 🥗 **Nutrition** | Diet plans, keto, vegan, high-protein, weight loss |\n| 🏋️ **Fitness** | Workout routines, VO2 max, strength training |\n| 😴 **Sleep** | Sleep hygiene, circadian rhythm optimization |\n| 🧠 **Mental Health** | Stress management, focus, breathing techniques |\n| ❤️ **Heart Health** | Blood pressure, cholesterol, cardiovascular fitness |\n| 🏠 **Home Remedies** | Natural remedies for common ailments |\n| 💊 **Longevity** | Anti-aging strategies, healthspan optimization |\n| 📊 **Body Metrics** | BMI, TDEE, hydration, supplements |\n\nTry asking something specific like *"Give me a high protein diet plan"* or *"How can I improve my sleep?"*`;
+  }
+
+  return `**Welcome to FutureMe AI!** 👋\n\nI'm your personal health intelligence assistant. Try asking me about:\n\n- 🥗 *"Give me a weekly diet plan"*\n- 💪 *"High protein meal plan"*\n- 😴 *"How to improve sleep"*\n- 🧠 *"Help with stress"*\n- 🏠 *"Home remedies for cold"*\n- 📊 *"What's my BMI?"*`;
 };
 
 // ---------------------------------------------------------------------------
@@ -512,7 +630,30 @@ export function FloatingChatbot() {
                   >
                     {message.role === "assistant" ? (
                       <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-p:my-1 prose-headings:mb-2 prose-headings:mt-3 prose-headings:text-foreground prose-li:my-0.5 prose-ul:my-1 prose-ol:my-1 prose-blockquote:border-accent prose-blockquote:text-muted-foreground">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            table: ({ children }) => (
+                              <table className="w-full text-xs border-collapse my-2 rounded-lg overflow-hidden">
+                                {children}
+                              </table>
+                            ),
+                            thead: ({ children }) => (
+                              <thead className="bg-accent/15 text-foreground font-semibold">{children}</thead>
+                            ),
+                            th: ({ children }) => (
+                              <th className="px-2 py-1.5 text-left border border-border/40 text-[11px]">{children}</th>
+                            ),
+                            td: ({ children }) => (
+                              <td className="px-2 py-1.5 border border-border/30 text-[11px]">{children}</td>
+                            ),
+                            tr: ({ children }) => (
+                              <tr className="even:bg-secondary/30 hover:bg-accent/5 transition-colors">{children}</tr>
+                            ),
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
                       </div>
                     ) : (
                       <p className="whitespace-pre-wrap">{message.content}</p>

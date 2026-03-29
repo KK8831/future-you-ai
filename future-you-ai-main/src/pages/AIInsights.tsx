@@ -229,78 +229,76 @@ const AIInsights = () => {
       return;
     }
 
-    if (useLocalAgent) {
-      setAnalyzing(true);
-      try {
-        // Prepare metrics context from active entries
-        const recentEntries = activeEntries.slice(0, 14);
-        const avgMetrics = {
-          avgActivityMinutes: recentEntries.reduce((s, e) => s + (e.physical_activity_minutes || 0), 0) / recentEntries.length,
-          avgSleepHours: recentEntries.reduce((s, e) => s + (e.sleep_hours || 0), 0) / recentEntries.length,
-          avgDietScore: recentEntries.reduce((s, e) => s + (e.diet_quality_score || 0), 0) / recentEntries.length,
-          avgStressLevel: recentEntries.reduce((s, e) => s + (e.stress_level || 0), 0) / recentEntries.length,
-          avgScreenTimeHours: recentEntries.reduce((s, e) => s + (e.screen_time_hours || 0), 0) / recentEntries.length,
-        };
-
-        const results = await runLocalFullAnalysis(profile, avgMetrics, activeAnomalies, simulations);
-        setAgentResults(results as any);
-        toast({ title: "Local Analysis Complete", description: "All data consolidated in local report." });
-      } catch (err) {
-        toast({ title: "Analysis Failed", description: "Local fallback also failed.", variant: "destructive" });
-      } finally {
-        setAnalyzing(false);
-      }
-      return;
-    }
-
     setAnalyzing(true);
 
-    // Build wearable context for AI
-    const wearableContext = {
-      heartRateBpm:    wearableData.find(d => d.data_type === "heart_rate")?.value ?? null,
-      dailySteps:      wearableData.find(d => d.data_type === "steps")?.value ?? null,
-      screenTimeHours: wearableData.find(d => d.data_type === "screen_time")?.value ?? null,
-      sleepHours:      wearableData.find(d => d.data_type === "sleep_duration")?.value ?? null,
-      weightKg:        wearableData.find(d => d.data_type === "weight")?.value ?? null,
+    // Prepare metrics context
+    const recentEntries = activeEntries.slice(0, 14);
+    const avgMetrics = {
+      avgActivityMinutes: recentEntries.reduce((s, e) => s + (e.physical_activity_minutes || 0), 0) / recentEntries.length,
+      avgSleepHours: recentEntries.reduce((s, e) => s + (e.sleep_hours || 0), 0) / recentEntries.length,
+      avgDietScore: recentEntries.reduce((s, e) => s + (e.diet_quality_score || 0), 0) / recentEntries.length,
+      avgStressLevel: recentEntries.reduce((s, e) => s + (e.stress_level || 0), 0) / recentEntries.length,
+      avgScreenTimeHours: recentEntries.reduce((s, e) => s + (e.screen_time_hours || 0), 0) / recentEntries.length,
     };
 
-    try {
-      const { data, error } = await supabase.functions.invoke("ai-health-agent", {
-        body: {
-          profile: { ...profile, bmi: calculateBMI(profile.heightCm, profile.weightKg) },
-          metrics,
-          wearable: wearableContext,
-          riskScores: {
-            framingham: riskScores.framingham.riskPercentage,
-            framinghamCategory: riskScores.framingham.riskCategory,
-            findrisc: riskScores.findrisc.riskPercentage,
-            findriscCategory: riskScores.findrisc.riskCategory,
-          },
-          entries: activeEntries.slice(0, 7),
-          agentType: "full-analysis",
-        },
-      });
+    // Try cloud AI first (unless local mode is explicitly selected)
+    if (!useLocalAgent) {
+      const wearableContext = {
+        heartRateBpm:    wearableData.find(d => d.data_type === "heart_rate")?.value ?? null,
+        dailySteps:      wearableData.find(d => d.data_type === "steps")?.value ?? null,
+        screenTimeHours: wearableData.find(d => d.data_type === "screen_time")?.value ?? null,
+        sleepHours:      wearableData.find(d => d.data_type === "sleep_duration")?.value ?? null,
+        weightKg:        wearableData.find(d => d.data_type === "weight")?.value ?? null,
+      };
 
-      if (error) throw error;
-      if (data?.error) {
-        if (data.error.includes("Rate limit")) {
-          toast({ title: "Rate limited", description: "Please wait a moment and try again.", variant: "destructive" });
-        } else {
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-health-agent", {
+          body: {
+            profile: { ...profile, bmi: calculateBMI(profile.heightCm, profile.weightKg) },
+            metrics,
+            wearable: wearableContext,
+            riskScores: {
+              framingham: riskScores.framingham.riskPercentage,
+              framinghamCategory: riskScores.framingham.riskCategory,
+              findrisc: riskScores.findrisc.riskPercentage,
+              findriscCategory: riskScores.findrisc.riskCategory,
+            },
+            entries: activeEntries.slice(0, 7),
+            agentType: "full-analysis",
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) {
+          if (data.error.includes("Rate limit")) {
+            toast({ title: "Rate limited", description: "Please wait a moment and try again.", variant: "destructive" });
+            setAnalyzing(false);
+            return;
+          }
           throw new Error(data.error);
         }
-        return;
-      }
 
-      setAgentResults(data.results || []);
-      toast({ title: "Analysis complete!", description: `${data.agentCount} AI agents processed your health data.` });
-    } catch (e: any) {
-      console.error("Analysis invocation error:", e);
-      setShowConnectivityAlert(true);
+        setAgentResults(data.results || []);
+        toast({ title: "Cloud Analysis Complete ✨", description: `${data.agentCount} AI agents processed your health data.` });
+        setAnalyzing(false);
+        return;
+      } catch (e: any) {
+        console.log("Cloud AI unavailable, seamlessly switching to local analysis...");
+        // Seamless fallback — no error toast, just continue to local analysis
+      }
+    }
+
+    // Local AI analysis (primary or fallback)
+    try {
+      const results = await runLocalFullAnalysis(profile, avgMetrics, activeAnomalies, simulations);
+      setAgentResults(results as any);
+      setUseLocalAgent(true);
       toast({ 
-        title: "Analysis Connectivity Issue", 
-        description: "The AI Health Agent is unreachable. Check the banner below to enable Local AI Mode.", 
-        variant: "destructive",
+        title: "Analysis Complete ✅", 
+        description: "On-device AI agents analyzed your health data securely and privately.",
       });
+    } catch (err) {
+      toast({ title: "Analysis Unavailable", description: "Could not complete health analysis. Please try again.", variant: "destructive" });
     } finally {
       setAnalyzing(false);
     }
@@ -385,20 +383,20 @@ const AIInsights = () => {
           </div>
         </div>
 
-        {showConnectivityAlert && !useLocalAgent && (
+        {!useLocalAgent && (
           <div className="mt-6 p-5 rounded-2xl bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20 flex flex-col sm:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 shadow-sm group">
             <div className="flex items-center gap-4 text-center sm:text-left">
               <div className="p-3 bg-accent/20 rounded-xl group-hover:scale-110 transition-transform duration-300">
                 <ShieldCheck className="w-6 h-6 text-accent" />
               </div>
               <div>
-                <p className="font-display font-semibold text-foreground text-lg">Enhance Your Privacy</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">Your AI agents are currently restricted by cloud connectivity. Enable **Privacy-First Local AI** to run analysis directly on your device.</p>
+                <p className="font-display font-semibold text-foreground text-lg">AI Analysis Mode</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Your analysis runs on <strong>cloud AI</strong> with automatic <strong>on-device fallback</strong> for uninterrupted results.</p>
               </div>
             </div>
-            <Button variant="hero" size="lg" className="shadow-lg shadow-accent/20" onClick={() => setUseLocalAgent(true)}>
+            <Button variant="outline" size="lg" className="border-accent/30 hover:bg-accent/10" onClick={() => setUseLocalAgent(true)}>
               <Cpu className="w-4 h-4 mr-2" />
-              Unlock Local AI
+              Switch to Local AI
             </Button>
           </div>
         )}
@@ -412,11 +410,11 @@ const AIInsights = () => {
               </div>
               <div>
                 <p className="font-display font-semibold text-foreground text-lg">On-Device Intelligence Active</p>
-                <p className="text-sm text-muted-foreground">AI agents are running securely in your browser session for maximum stability and speed.</p>
+                <p className="text-sm text-muted-foreground">AI agents run securely in your browser — zero data leaves your device. Maximum privacy & speed.</p>
               </div>
             </div>
             <Button variant="outline" size="sm" className="border-green-500/40 text-green-400 hover:bg-green-500/10" onClick={() => setUseLocalAgent(false)}>
-              Back to Cloud Mode
+              Switch to Cloud AI
             </Button>
           </div>
         )}
