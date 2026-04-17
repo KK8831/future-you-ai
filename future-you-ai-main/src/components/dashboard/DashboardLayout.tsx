@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -18,12 +18,20 @@ import {
   FileText,
   Moon,
   Sun,
+  Flame,
+  CreditCard,
+  Trophy,
+  Users,
+  BarChart3,
+  Settings,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { FloatingChatbot } from "./FloatingChatbot";
 import { useTheme } from "@/components/theme-provider";
+import { APP_VERSION } from "@/lib/version";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -35,9 +43,13 @@ const navItems = [
   { label: "Profile",      icon: UserCircle,      href: "/profile" },
   { label: "Log Entry",    icon: ClipboardPlus,   href: "/log-entry" },
   { label: "Smart Collect",icon: Smartphone,      href: "/smart-collect" },
-  { label: "Predictions",  icon: Target,          href: "/predictions" },
   { label: "Simulations",  icon: TrendingUp,      href: "/simulations" },
   { label: "AI Insights",  icon: Bot,             href: "/ai-insights" },
+  { label: "Weekly Digest",icon: BarChart3,        href: "/weekly-digest" },
+  { label: "Achievements", icon: Trophy,           href: "/achievements" },
+  { label: "Community",    icon: Users,            href: "/social" },
+  { label: "Subscription", icon: CreditCard,      href: "/subscription" },
+  { label: "Settings",     icon: Settings,         href: "/settings" },
 ];
 
 const adminItems = [
@@ -50,7 +62,8 @@ const mobileNavItems = [
   { label: "Home",       icon: LayoutDashboard, href: "/dashboard" },
   { label: "AI",         icon: Bot,             href: "/ai-insights" },
   { label: "Log",        icon: ClipboardPlus,   href: "/log-entry" },
-  { label: "Scan",       icon: Smartphone,      href: "/smart-collect" },
+  { label: "Trophies",   icon: Trophy,          href: "/achievements" },
+  { label: "Social",     icon: Users,           href: "/social" },
   { label: "Profile",    icon: UserCircle,      href: "/profile" },
 ];
 
@@ -58,6 +71,22 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
+  const [streak, setStreak] = useState<number>(0);
+  const { scheduleDailyStreakReminder } = useNotifications();
+
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from("profiles")
+        .select("current_streak")
+        .eq("user_id", user.id)
+        .single()
+        .then(({ data }) => {
+          const profileData = data as any;
+          if (profileData) setStreak(profileData.current_streak || 0);
+        });
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -194,6 +223,12 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
           </button>
+          <p
+            className="text-center mt-2 opacity-40"
+            style={{ color: "hsl(var(--sidebar-foreground))", fontSize: "10px" }}
+          >
+            v{APP_VERSION}
+          </p>
         </div>
       </aside>
 
@@ -203,13 +238,23 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
           <BrandLogo size="sm" />
         </Link>
         <div className="flex items-center gap-1">
+          {streak > 0 && (
+            <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-500/10 px-2 py-1 rounded-md mr-1 border border-orange-500/20">
+              <Flame className="w-3.5 h-3.5 fill-orange-500" />
+              <span>{streak}</span>
+            </div>
+          )}
           <button 
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          <button className="p-2 text-muted-foreground hover:text-foreground transition-colors relative">
+          <button 
+             onClick={() => scheduleDailyStreakReminder(true)}
+             className="p-2 text-muted-foreground hover:text-foreground transition-colors relative"
+             title="Enable Streak Reminders"
+          >
             <Bell className="w-5 h-5" />
             <span className="absolute top-2.5 right-2 w-2 h-2 bg-red-500 border-2 border-card rounded-full" />
           </button>
@@ -255,6 +300,14 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
               <Calendar className="w-4 h-4 text-accent" />
               <span>{format(new Date(), "EEEE, MMMM do")}</span>
             </div>
+            
+            {streak > 0 && (
+              <div className="flex items-center gap-1.5 text-sm font-bold text-orange-500 bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20 shadow-sm animate-fade-in">
+                <Flame className="w-4 h-4 fill-orange-500 animate-pulse" />
+                <span>{streak} Day Streak</span>
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -263,7 +316,11 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
               >
                 {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
-              <button className="relative p-2.5 rounded-xl hover:bg-secondary text-muted-foreground transition-all">
+              <button 
+                onClick={() => scheduleDailyStreakReminder(true)}
+                className="relative p-2.5 rounded-xl hover:bg-secondary text-muted-foreground transition-all"
+                title="Enable Streak Reminders"
+              >
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 border-2 border-card rounded-full" />
               </button>

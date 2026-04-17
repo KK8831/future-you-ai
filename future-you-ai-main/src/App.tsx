@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { MedicalDisclaimerModal } from "./components/MedicalDisclaimer";
+import { PwaInstallBanner } from "./components/PwaInstallBanner";
 
 // Lazy load all pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -21,6 +23,11 @@ const AIInsights = lazy(() => import("./pages/AIInsights"));
 const SmartCollect = lazy(() => import("./pages/SmartCollect"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Subscription = lazy(() => import("./pages/Subscription"));
+const Social = lazy(() => import("./pages/Social"));
+const Achievements = lazy(() => import("./pages/Achievements"));
+const WeeklyDigest = lazy(() => import("./pages/WeeklyDigest"));
+const Settings = lazy(() => import("./pages/Settings"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -45,6 +52,8 @@ const App = () => (
       <BrowserRouter>
         <ThemeProvider defaultTheme="light">
           <OfflineBanner />
+          <MedicalDisclaimerModal />
+          <PwaInstallBanner />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -57,7 +66,12 @@ const App = () => (
               <Route path="/profile" element={<ProfileSettings />} />
               <Route path="/audit" element={<AuditDashboard />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/subscription" element={<Subscription />} />
+              <Route path="/social" element={<Social />} />
+              <Route path="/achievements" element={<Achievements />} />
               <Route path="/ai-insights" element={<AIInsights />} />
+              <Route path="/weekly-digest" element={<WeeklyDigest />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/smart-collect" element={<SmartCollect />} />
               <Route path="/privacy-policy" element={<ErrorBoundary section="Privacy Policy"><PrivacyPolicy /></ErrorBoundary>} />
               <Route path="/terms" element={<ErrorBoundary section="Terms of Service"><TermsOfService /></ErrorBoundary>} />

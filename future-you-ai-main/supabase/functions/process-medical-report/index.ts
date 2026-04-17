@@ -6,17 +6,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// Google AI Gemini API — production endpoint
+const AI_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
+  const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+  if (!GOOGLE_AI_API_KEY) {
     return new Response(
-      JSON.stringify({ error: "LOVABLE_API_KEY is not configured" }),
+      JSON.stringify({ error: "GOOGLE_AI_API_KEY is not configured" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -34,11 +35,11 @@ serve(async (req) => {
     const response = await fetch(AI_GATEWAY, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GOOGLE_AI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gemini-2.0-flash",
         messages: [
           {
             role: "system",

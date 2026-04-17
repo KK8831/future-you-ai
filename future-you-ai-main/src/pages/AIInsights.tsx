@@ -43,6 +43,7 @@ import { runLocalFullAnalysis } from "@/lib/ai-agent-locally";
 import { MedicalRiskScores } from "@/components/dashboard/MedicalRiskScores";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { MedicalDisclaimerBanner } from "@/components/MedicalDisclaimer";
 
 interface AgentResult {
   agent: string;
@@ -56,6 +57,7 @@ const AIInsights = () => {
   const [entries, setEntries] = useState<LifestyleEntry[]>([]);
   const [wearableData, setWearableData] = useState<WearableMetric[]>([]);
   const [profile, setProfile] = useState<HealthProfile>({ age: 30, sex: "unspecified", heightCm: 170, weightKg: 70 });
+  const [subscriptionInfo, setSubscriptionInfo] = useState({ tier: 'free', credits: 3 });
   const [agentResults, setAgentResults] = useState<AgentResult[]>([]);
   const [simulations, setSimulations] = useState<any[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
@@ -79,7 +81,7 @@ const AIInsights = () => {
     if (!user) return;
     Promise.all([
       supabase.from("lifestyle_entries").select("*").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(30),
-      supabase.from("profiles").select("age, sex, height_cm, weight_kg").eq("user_id", user.id).maybeSingle(),
+      supabase.from("profiles").select("age, sex, height_cm, weight_kg, subscription_tier, api_credits").eq("user_id", user.id).maybeSingle(),
       supabase.from("wearable_data").select("*").eq("user_id", user.id).order("recorded_at", { ascending: false }).limit(50),
     ]).then(([entriesRes, profileRes, wearableRes]) => {
       if (entriesRes.data) setEntries(entriesRes.data as LifestyleEntry[]);
@@ -89,6 +91,10 @@ const AIInsights = () => {
           sex: (profileRes.data.sex as HealthProfile["sex"]) || "unspecified",
           heightCm: Number(profileRes.data.height_cm) || 170,
           weightKg: Number(profileRes.data.weight_kg) || 70,
+        });
+        setSubscriptionInfo({
+          tier: profileRes.data.subscription_tier || 'free',
+          credits: profileRes.data.api_credits ?? 3
         });
       }
       if (wearableRes.data) setWearableData(wearableRes.data as WearableMetric[]);
@@ -243,6 +249,17 @@ const AIInsights = () => {
 
     // Try cloud AI first (unless local mode is explicitly selected)
     if (!useLocalAgent) {
+      if (subscriptionInfo.tier !== 'premium' && subscriptionInfo.credits <= 0) {
+        toast({
+          title: "Out of AI Credits",
+          description: "You have used your free AI Insights. Upgrade to Premium for unmetered access.",
+          variant: "destructive",
+        });
+        navigate("/subscription");
+        setAnalyzing(false);
+        return;
+      }
+
       const wearableContext = {
         heartRateBpm:    wearableData.find(d => d.data_type === "heart_rate")?.value ?? null,
         dailySteps:      wearableData.find(d => d.data_type === "steps")?.value ?? null,
@@ -280,6 +297,14 @@ const AIInsights = () => {
 
         setAgentResults(data.results || []);
         toast({ title: "Cloud Analysis Complete ✨", description: `${data.agentCount} AI agents processed your health data.` });
+        
+        // Deduct a credit locally if free
+        if (subscriptionInfo.tier !== 'premium') {
+          const newCredits = subscriptionInfo.credits - 1;
+          setSubscriptionInfo(prev => ({ ...prev, credits: newCredits }));
+          await supabase.from("profiles").update({ api_credits: newCredits }).eq("user_id", user?.id);
+        }
+
         setAnalyzing(false);
         return;
       } catch (e: any) {
@@ -323,6 +348,7 @@ const AIInsights = () => {
   return (
     <DashboardLayout user={user}>
       <div className="space-y-8 animate-fade-in" id="ai-insights-report">
+        <MedicalDisclaimerBanner className="mb-2" />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-4">

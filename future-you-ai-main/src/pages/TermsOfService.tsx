@@ -11,7 +11,7 @@ const TermsOfService = () => {
           </div>
           <div>
             <h1 className="text-4xl font-display font-bold">Terms of Service</h1>
-            <p className="text-muted-foreground mt-2">Last Updated: March 22, 2024</p>
+            <p className="text-muted-foreground mt-2">Last Updated: April 6, 2026</p>
           </div>
         </div>
 
@@ -32,7 +32,7 @@ const TermsOfService = () => {
               FutureMe AI provides health projections, data analysis, and wellness recommendations based on user-provided data and wearable device synchronization.
             </p>
             <ul className="list-disc pl-6 mt-4 space-y-2">
-              <li>You must be at least 18 years old to use this service.</li>
+              <li>You must be at least 13 years old to use this service.</li>
               <li>You are responsible for maintaining the confidentiality of your account.</li>
               <li>The service is for personal, non-commercial use only.</li>
             </ul>
@@ -44,10 +44,10 @@ const TermsOfService = () => {
               3. Medical Disclaimer
             </h2>
             <p className="text-foreground font-medium">
-              FUTUREME AI IS NOT A MEDICAL DEVICE AND DOES NOT PROVIDE MEDICAL ADVICE.
+              FUTUREME AI IS NOT A MEDICAL DEVICE AND DOES NOT PROVIDE MEDICAL ADVICE, DIAGNOSES, OR TREATMENT.
             </p>
             <p className="mt-2 text-sm italic">
-              All projections, scores (Framingham, FINDRISC), and AI-generated insights are for educational and informational purposes only. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+              All projections, scores (Framingham, FINDRISC), heart rate measurements via camera (PPG), and AI-generated insights are for educational and informational purposes only. They are estimates and should not be relied upon for clinical decision-making. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. In case of a medical emergency, call your local emergency services immediately.
             </p>
           </section>
 

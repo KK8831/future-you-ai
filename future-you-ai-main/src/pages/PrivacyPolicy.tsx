@@ -25,9 +25,9 @@ export default function PrivacyPolicy() {
           <h1 className="text-4xl font-bold text-foreground mb-3">
             Your Privacy Matters
           </h1>
+          <p className="text-muted-foreground mt-2">Last Updated: April 6, 2026</p>
           <p className="text-muted-foreground">
-            Last updated: March 24, 2026. This policy explains how FutureMe AI
-            collects, uses, and safeguards your personal health data.
+            This policy explains how FutureMe AI collects, uses, and safeguards your personal health data.
           </p>
         </div>
 
@@ -35,11 +35,12 @@ export default function PrivacyPolicy() {
           {
             title: "1. Information We Collect",
             content: [
-              "Account Information: Your name, email address, and password (stored encrypted via Supabase Auth).",
-              "Health Profile: Age, sex, height, weight, blood pressure, smoking status, and alcohol consumption that you voluntarily provide.",
-              "Lifestyle Entries: Daily logs including sleep, exercise, diet, stress, and mood that you enter manually.",
-              "Wearable & Biometric Data: Heart rate readings measured via camera (PPG), step counts, and other metrics collected through the Smart Collect feature.",
-              "Usage Data: App interaction logs to improve performance and identify bugs.",
+              "We collect the following personal information:",
+              "Profile Data: Name, age, sex, weight, height.",
+              "Health Metrics: Steps, heart rate, sleep duration, physical activity, blood pressure, and blood glucose.",
+              "Sensor Data (Android only): Camera data is processed locally for optical heart rate measurement (PPG). Video frames are NEVER saved or transmitted.",
+              "Health Connect Data: Read/write access to steps, activity, and vitals from other fitness apps.",
+              "Medical Reports: Uploaded blood test reports and their extracted health values.",
             ],
           },
           {
@@ -111,8 +112,15 @@ export default function PrivacyPolicy() {
           <h2 className="text-lg font-semibold text-foreground">
             Contact Us
           </h2>
-          <p className="text-sm text-muted-foreground">
-            If you have questions about this policy or your data, reach out:
+          <p>
+            In accordance with GDPR, DPDPA, and Google Play policies, you have the right to request the deletion of your personal data.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            <strong>How to delete your data:</strong> You can delete your account and all associated health data directly within the app by going to <strong>Profile Settings {'>'} Danger Zone {'>'} Delete Account</strong>. Alternatively, you can request data deletion by emailing us at <a href="mailto:privacy@futureme.ai" className="text-teal-500 underline">privacy@futureme.ai</a>. 
+            Upon deletion, all your health records, predictions, and profile information will be permanently erased from our servers within 30 days.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            <strong>How to export your data:</strong> You can download a structured JSON copy of all your stored data via <strong>Profile Settings {'>'} Export My Data</strong>.
           </p>
           <div className="flex flex-col gap-2 text-sm">
             <a

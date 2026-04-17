@@ -24,3 +24,14 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Android signing keys (NEVER commit these)
+*.jks
+*.keystore
+keystore.properties
+
+# Development artifacts
+build_err.txt
+deploy_out.txt
+diff.txt
+vite_error*.txt

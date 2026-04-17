@@ -7,7 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// Google AI Gemini API — production endpoint
+const AI_GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 interface AgentResult {
   agent: string;
@@ -15,7 +16,7 @@ interface AgentResult {
   reasoning: string;
 }
 
-async function callAI(apiKey: string, systemPrompt: string, userPrompt: string, model = "google/gemini-3-flash-preview"): Promise<string> {
+async function callAI(apiKey: string, systemPrompt: string, userPrompt: string, model = "gemini-2.0-flash"): Promise<string> {
   const response = await fetch(AI_GATEWAY, {
     method: "POST",
     headers: {
@@ -231,10 +232,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
+  const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+  if (!GOOGLE_AI_API_KEY) {
     return new Response(
-      JSON.stringify({ error: "LOVABLE_API_KEY is not configured" }),
+      JSON.stringify({ error: "GOOGLE_AI_API_KEY is not configured" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -248,24 +249,24 @@ serve(async (req) => {
 
     if (agentType === "full-analysis") {
       // Run full agent pipeline: Planner → Risk → Recommendation → Simulation
-      const plannerResult = await runPlannerAgent(LOVABLE_API_KEY, context);
-      const riskResult = await runRiskAgent(LOVABLE_API_KEY, context, plannerResult.output);
-      const recommendationResult = await runRecommendationAgent(LOVABLE_API_KEY, context, riskResult.output);
-      const simulationResult = await runSimulationAgent(LOVABLE_API_KEY, context, recommendationResult.output);
+      const plannerResult = await runPlannerAgent(GOOGLE_AI_API_KEY, context);
+      const riskResult = await runRiskAgent(GOOGLE_AI_API_KEY, context, plannerResult.output);
+      const recommendationResult = await runRecommendationAgent(GOOGLE_AI_API_KEY, context, riskResult.output);
+      const simulationResult = await runSimulationAgent(GOOGLE_AI_API_KEY, context, recommendationResult.output);
 
       results = [plannerResult, riskResult, recommendationResult, simulationResult];
     } else if (agentType === "quick-risk") {
-      const riskResult = await runRiskAgent(LOVABLE_API_KEY, context, {});
+      const riskResult = await runRiskAgent(GOOGLE_AI_API_KEY, context, {});
       results = [riskResult];
     } else if (agentType === "recommendations") {
-      const recommendationResult = await runRecommendationAgent(LOVABLE_API_KEY, context, {});
+      const recommendationResult = await runRecommendationAgent(GOOGLE_AI_API_KEY, context, {});
       results = [recommendationResult];
     } else if (agentType === "future-self") {
-      const futureSelfResult = await runFutureSelfAgent(LOVABLE_API_KEY, context);
+      const futureSelfResult = await runFutureSelfAgent(GOOGLE_AI_API_KEY, context);
       results = [futureSelfResult];
     } else {
       // Default: planner only
-      const plannerResult = await runPlannerAgent(LOVABLE_API_KEY, context);
+      const plannerResult = await runPlannerAgent(GOOGLE_AI_API_KEY, context);
       results = [plannerResult];
     }
 

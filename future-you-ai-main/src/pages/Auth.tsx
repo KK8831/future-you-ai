@@ -339,6 +339,17 @@ const Auth = () => {
               </div>
             )}
 
+            {/* Legal consent notice */}
+            {!isLogin && (
+              <p className="text-xs text-muted-foreground text-center">
+                By creating an account, you agree to our{" "}
+                <Link to="/terms" className="text-accent hover:underline">Terms of Service</Link>
+                {" "}and{" "}
+                <Link to="/privacy-policy" className="text-accent hover:underline">Privacy Policy</Link>.
+                FutureMe AI is not a medical device.
+              </p>
+            )}
+
             <Button
               type="submit"
               variant="hero"
@@ -414,7 +425,7 @@ const Auth = () => {
             © {new Date().getFullYear()} FutureMe AI. All rights reserved. | <span className="font-semibold text-muted-foreground ml-1">Powered by Predictive</span>
           </p>
           <div className="flex gap-2 items-center">
-            <Link to="/privacy" className="text-accent underline">Privacy Policy</Link>
+            <Link to="/privacy-policy" className="text-accent underline">Privacy Policy</Link>
             <span className="text-muted-foreground">|</span>
             <Link to="/terms" className="text-accent underline">Terms of Service</Link>
           </div>

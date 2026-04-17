@@ -11,10 +11,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
+  const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+  if (!GOOGLE_AI_API_KEY) {
     return new Response(
-      JSON.stringify({ error: "LOVABLE_API_KEY is not configured" }),
+      JSON.stringify({ error: "GOOGLE_AI_API_KEY is not configured" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -44,14 +44,14 @@ Validated Risk Scores:
 
 Provide a 3-4 sentence interpretation of what these scores mean for this person's health trajectory. Be specific, actionable, and cite which lifestyle factors are the biggest modifiable risk drivers. Do NOT recalculate scores. Use empathetic but direct clinical communication.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GOOGLE_AI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gemini-2.0-flash",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 300,
       }),

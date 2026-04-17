@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, Check } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -97,9 +97,59 @@ const LogEntry = () => {
 
     setSaving(true);
 
+    const entryDateStr = format(entryDate, "yyyy-MM-dd");
+
+    // --- Gamification / Streak Logic ---
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("current_streak, last_entry_date")
+        .eq("user_id", user.id)
+        .single();
+        
+      const profile = data as any;
+
+      let newStreak = profile?.current_streak || 0;
+      
+      if (profile?.last_entry_date) {
+        // Only increment streak if the entry is exactly 1 day after the last entry
+        const lastDate = new Date(profile.last_entry_date);
+        
+        // Strip time for accurate day difference
+        const lastDateMidnight = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+        const entryDateMidnight = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate());
+        
+        const diff = differenceInDays(entryDateMidnight, lastDateMidnight);
+        
+        if (diff === 1) {
+          newStreak += 1;
+        } else if (diff > 1 || diff < 0) {
+          // Reset streak if gap is missed (diff > 1) or user logs old data
+          newStreak = 1;
+        }
+      } else {
+        newStreak = 1; // First entry ever
+      }
+
+      // Update the user's profile with new streak
+      const updateData: any = { 
+        current_streak: newStreak, 
+        last_entry_date: entryDateStr 
+      };
+      
+      await supabase
+        .from("profiles")
+        .update(updateData)
+        .eq("user_id", user.id);
+        
+    } catch (err) {
+      console.error("Streak update warning:", err);
+      // Non-fatal, continue to log saving
+    }
+
     const entryData = {
       user_id: user.id,
-      entry_date: format(entryDate, "yyyy-MM-dd"),
+      entry_date: entryDateStr,
       physical_activity_minutes: activityMinutes,
       sleep_hours: sleepHours,
       diet_quality_score: dietScore,

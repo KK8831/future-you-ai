@@ -10,11 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calculateBMI } from "@/lib/medical-calculators";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Heart, Scale, Activity, Brain, CalendarIcon, Trash2, AlertTriangle, Sparkles, Dumbbell, Moon, Target } from "lucide-react";
+import { Save, Heart, Scale, Activity, Brain, CalendarIcon, Trash2, AlertTriangle, Sparkles, Dumbbell, Moon, Target, Download } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { APP_VERSION, BUILD_DATE } from "@/lib/version";
 
 interface ProfileData {
   age: number;
@@ -336,6 +337,53 @@ const ProfileSettings = () => {
           <Save className="w-5 h-5 mr-2" />
           {saving ? "Saving..." : "Save Health Profile"}
         </Button>
+
+        {/* Data Export (GDPR/DPDPA compliance) */}
+        <div className="p-6 rounded-xl bg-card border border-border space-y-4">
+          <h3 className="text-lg font-display font-semibold text-foreground flex items-center gap-2">
+            <Download className="w-5 h-5 text-accent" />
+            Your Data
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Download a copy of all your health data stored in FutureMe AI.
+          </p>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              if (!user) return;
+              try {
+                const [profileRes, entriesRes, wearableRes] = await Promise.all([
+                  supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
+                  supabase.from("lifestyle_entries").select("*").eq("user_id", user.id).order("date", { ascending: false }),
+                  supabase.from("wearable_data").select("*").eq("user_id", user.id).order("recorded_at", { ascending: false }),
+                ]);
+                const exportData = {
+                  exportDate: new Date().toISOString(),
+                  appVersion: APP_VERSION,
+                  profile: profileRes.data,
+                  lifestyleEntries: entriesRes.data || [],
+                  wearableData: wearableRes.data || [],
+                };
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `futureme-data-${format(new Date(), "yyyy-MM-dd")}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast({ title: "Data Exported", description: "Your health data has been downloaded." });
+              } catch (e: any) {
+                toast({ title: "Export Failed", description: e.message, variant: "destructive" });
+              }
+            }}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export My Data (JSON)
+          </Button>
+          <p className="text-[10px] text-muted-foreground">
+            App Version: v{APP_VERSION} · Build: {BUILD_DATE}
+          </p>
+        </div>
 
         {/* Danger Zone — Account Deletion (required by App Store guideline 5.1.1) */}
         <div className="mt-8 p-6 rounded-xl border border-red-500/30 bg-red-500/5 space-y-4">

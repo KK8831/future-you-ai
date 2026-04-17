@@ -1,21 +1,25 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ---- FutureMe AI - ProGuard Rules for Play Store Release ----
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep Capacitor WebView JS interface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep Capacitor plugin classes
+-keep class com.getcapacitor.** { *; }
+-keep class com.korek.futureyouai.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep Health Connect classes
+-keep class androidx.health.connect.** { *; }
+
+# Preserve line number info for debugging crash reports
+-keepattributes SourceFile,LineNumberTable
+
+# Hide original source file name in stack traces
+-renamesourcefileattribute SourceFile
+
+# Keep annotation metadata
+-keepattributes *Annotation*
+
+# Don't warn about missing Health Connect classes on older devices
+-dontwarn androidx.health.connect.**

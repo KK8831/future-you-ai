@@ -31,6 +31,17 @@ export default defineConfig(({ mode }) => ({
             sizes: "64x64",
             type: "image/x-icon",
           },
+          {
+            src: "/logo192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "/logo512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
         ],
       },
       workbox: {
@@ -58,6 +69,19 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor": ["react", "react-dom", "react-router-dom"],
+          "ui-core": ["lucide-react", "framer-motion", "clsx", "tailwind-merge"],
+          "supabase": ["@supabase/supabase-js"],
+          "charts": ["recharts"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1500,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

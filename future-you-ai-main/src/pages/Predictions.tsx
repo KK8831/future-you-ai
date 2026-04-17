@@ -254,11 +254,14 @@ const Predictions = () => {
                   <div>
                     <h4 className="font-medium text-foreground mb-2">Methodology</h4>
                     <ul className="space-y-1 text-sm text-muted-foreground">
-                      <li>• <strong>Framingham Score</strong> — Adapted from Wilson et al., 1998</li>
-                      <li>• <strong>FINDRISC</strong> — Lindström & Tuomilehto, 2003</li>
-                      <li>• <strong>Pearson Correlation</strong> — Statistical metric relationships</li>
-                      <li>• <strong>AI Interpreter</strong> — Gemini 2.5 for clinical-grade explanations</li>
-                      <li>• <strong>Audit Trail</strong> — All data access logged for compliance</li>
+                      <li>• <strong>CVD Score</strong> — Adapted from Wilson et al., 1998</li>
+                      <li>• <strong>Diabetes (FINDRISC)</strong> — Lindström & Tuomilehto, 2003</li>
+                      <li>• <strong>Mental Health</strong> — Adapted from PHQ-9 & GAD-7</li>
+                      <li>• <strong>Sleep Apnea</strong> — Adapted from STOP-BANG</li>
+                      <li>• <strong>Stroke Risk</strong> — Adapted from CHA2DS2-VASc</li>
+                      <li>• <strong>Hypertension</strong> — Adapted from AHA BP Progression</li>
+                      <li>• <strong>Pearson Correlation</strong> — Statistical relationship mapping</li>
+                      <li>• <strong>AI Agent Analysis</strong> — Clinical interpretation layer</li>
                     </ul>
                   </div>
                 </div>

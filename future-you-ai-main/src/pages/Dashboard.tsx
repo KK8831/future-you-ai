@@ -11,6 +11,7 @@ import { Recommendations } from "@/components/dashboard/Recommendations";
 import { CorrelationHeatmap } from "@/components/dashboard/CorrelationHeatmap";
 import { MedicalRiskScores } from "@/components/dashboard/MedicalRiskScores";
 import { AnomalyAlerts } from "@/components/dashboard/AnomalyAlerts";
+import { HistoricalTrends } from "@/components/dashboard/HistoricalTrends";
 import { MonteCarloChart } from "@/components/dashboard/MonteCarloChart";
 import { PatientProfileCard } from "@/components/dashboard/PatientProfileCard";
 import { HealthIndexBar } from "@/components/dashboard/HealthIndexBar";
@@ -264,6 +265,11 @@ const Dashboard = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <RiskPredictions entries={entries} wearableData={wearableData} />
                 <MedicalRiskScores entries={entries} userId={user?.id} wearableData={wearableData} />
+              </div>
+              
+              {/* Inserted the Historical Trends 14-Day graph */}
+              <div className="mt-6">
+                <HistoricalTrends user={user} />
               </div>
             </div>
 

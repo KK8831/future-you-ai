@@ -19,6 +19,10 @@ interface ReportData {
   riskScores?: {
     framingham: { riskPercentage: number; riskCategory: string };
     findrisc: { riskPercentage: number; riskCategory: string };
+    depressionAnxiety?: { riskPercentage: number; riskCategory: string };
+    sleepDisorder?: { riskPercentage: number; riskCategory: string };
+    strokeRisk?: { riskPercentage: number; riskCategory: string };
+    hypertension?: { riskPercentage: number; riskCategory: string };
   };
   simulations?: Array<{
     name: string;
@@ -26,6 +30,22 @@ interface ReportData {
     projectedImprovement?: string;
     projectedHealthScore?: number;
   }>;
+  achievements?: Array<{
+    name: string;
+    icon: string;
+    tier: string;
+    xp_reward: number;
+  }>;
+  weeklySummary?: {
+    avgSleep: number;
+    avgActivity: number;
+    avgStress: number;
+    avgDiet: number;
+    streak: number;
+    totalEntries: number;
+    level: number;
+    totalXp: number;
+  };
   generatedAt: Date;
 }
 
@@ -280,6 +300,10 @@ export const generateProfessionalPdf = (data: ReportData, filename: string = "Fu
       ["Medical Assessment", "Risk Level", "Category"],
       ["CVD Risk (Framingham)", `${data.riskScores.framingham.riskPercentage}%`, data.riskScores.framingham.riskCategory],
       ["Diabetes Risk (FINDRISC)", `${data.riskScores.findrisc.riskPercentage}%`, data.riskScores.findrisc.riskCategory],
+      ["Emotional Wellness", `${data.riskScores.depressionAnxiety?.riskPercentage ?? 0}%`, data.riskScores.depressionAnxiety?.riskCategory ?? "N/A"],
+      ["Sleep Disorder Risk", `${data.riskScores.sleepDisorder?.riskPercentage ?? 0}%`, data.riskScores.sleepDisorder?.riskCategory ?? "N/A"],
+      ["Stroke Risk (CHA2DS2-VASc)", `${data.riskScores.strokeRisk?.riskPercentage ?? 0}%`, data.riskScores.strokeRisk?.riskCategory ?? "N/A"],
+      ["Hypertension Risk", `${data.riskScores.hypertension?.riskPercentage ?? 0}%`, data.riskScores.hypertension?.riskCategory ?? "N/A"],
     ];
 
     autoTable(doc, {
@@ -321,6 +345,75 @@ export const generateProfessionalPdf = (data: ReportData, filename: string = "Fu
       margin: { left: margin },
       styles: { fontSize: 9 },
       headStyles: { fillColor: [5, 150, 105] } // emerald-600
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // --- Section 6: Achievements & Badges ---
+  if (data.achievements && data.achievements.length > 0) {
+    if (yPos > 220) {
+      addFooter(doc.getNumberOfPages());
+      doc.addPage();
+      addHeader(doc.getNumberOfPages());
+      yPos = 55;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("6. Earned Achievement Badges", margin, yPos);
+    yPos += 10;
+
+    const badgeRows = data.achievements.map(a => [
+      `${a.icon} ${a.name}`,
+      a.tier.charAt(0).toUpperCase() + a.tier.slice(1),
+      `+${a.xp_reward} XP`
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Badge", "Tier", "XP Reward"]],
+      body: badgeRows,
+      margin: { left: margin },
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [234, 179, 8] } // yellow-500
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // --- Section 7: Weekly Health Summary ---
+  if (data.weeklySummary) {
+    if (yPos > 220) {
+      addFooter(doc.getNumberOfPages());
+      doc.addPage();
+      addHeader(doc.getNumberOfPages());
+      yPos = 55;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("7. Weekly Health Summary", margin, yPos);
+    yPos += 10;
+
+    const ws = data.weeklySummary;
+    const summaryRows = [
+      ["Average Sleep", `${ws.avgSleep.toFixed(1)} hrs/night`],
+      ["Average Activity", `${ws.avgActivity.toFixed(0)} min/day`],
+      ["Average Stress", `${ws.avgStress.toFixed(1)} / 10`],
+      ["Average Diet Quality", `${ws.avgDiet.toFixed(1)} / 10`],
+      ["Current Streak", `${ws.streak} days`],
+      ["Total Entries Logged", `${ws.totalEntries}`],
+      ["Player Level", `Level ${ws.level} (${ws.totalXp} XP)`],
+    ];
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Metric", "Value"]],
+      body: summaryRows,
+      margin: { left: margin },
+      theme: "striped",
+      headStyles: { fillColor: [99, 102, 241] } // indigo-500
     });
     yPos = (doc as any).lastAutoTable.finalY + 15;
   }

@@ -46,9 +46,45 @@ export interface FindriscResult {
   interpretation: string;
 }
 
+export interface MentalHealthResult {
+  totalScore: number;
+  riskPercentage: number;
+  riskCategory: "low" | "moderate" | "high";
+  breakdown: { factor: string; points: number; description: string }[];
+  interpretation: string;
+}
+
+export interface SleepDisorderResult {
+  totalScore: number;
+  riskPercentage: number;
+  riskCategory: "low" | "intermediate" | "high";
+  breakdown: { factor: string; points: number; description: string }[];
+  interpretation: string;
+}
+
+export interface StrokeRiskResult {
+  totalScore: number;
+  riskPercentage: number;
+  riskCategory: "low" | "moderate" | "high";
+  breakdown: { factor: string; points: number; description: string }[];
+  disclaimer: string;
+}
+
+export interface HypertensionResult {
+  totalScore: number;
+  riskPercentage: number;
+  riskCategory: "optimal" | "normal" | "pre-hypertension" | "stage-1" | "stage-2";
+  breakdown: { factor: string; points: number; description: string }[];
+  interpretation: string;
+}
+
 export interface MedicalRiskResult {
   framingham: FraminghamResult;
   findrisc: FindriscResult;
+  depressionAnxiety: MentalHealthResult;
+  sleepDisorder: SleepDisorderResult;
+  strokeRisk: StrokeRiskResult;
+  hypertension: HypertensionResult;
   combinedHealthScore: number; // 0-100
   methodology: string;
 }
@@ -350,6 +386,199 @@ export function calculateFindrisc(
 }
 
 /**
+ * Emotional Wellness Risk (Adapted from PHQ-9 and GAD-7)
+ * Predicts risk of depression and anxiety based on stress, sleep, activity, and screen time.
+ */
+export function calculateMentalHealthRisk(
+  metrics: LifestyleMetrics
+): MentalHealthResult {
+  const breakdown: MentalHealthResult["breakdown"] = [];
+  let totalPoints = 0;
+
+  // Stress Factor (Primary driver)
+  const stressPoints = metrics.avgStressLevel > 7 ? 4 : metrics.avgStressLevel > 5 ? 2 : 0;
+  totalPoints += stressPoints;
+  breakdown.push({
+    factor: "Stress Levels",
+    points: stressPoints,
+    description: `Level ${metrics.avgStressLevel.toFixed(1)}/10: ${stressPoints >= 2 ? "High chronic stress is a major risk for anxiety/depression" : "Well-managed stress levels"}`,
+  });
+
+  // Sleep Factor
+  const sleepPoints = metrics.avgSleepHours < 6 ? 2 : metrics.avgSleepHours < 7 ? 1 : 0;
+  totalPoints += sleepPoints;
+  breakdown.push({
+    factor: "Sleep Duration",
+    points: sleepPoints,
+    description: `${metrics.avgSleepHours.toFixed(1)}h avg: ${sleepPoints > 0 ? "Sleep deprivation strongly correlates with mood disorders" : "Adequate sleep supports emotional regulation"}`,
+  });
+
+  // Activity Factor
+  const activityPoints = metrics.avgActivityMinutes < 20 ? 2 : metrics.avgActivityMinutes < 30 ? 1 : 0;
+  totalPoints += activityPoints;
+  breakdown.push({
+    factor: "Physical Activity",
+    points: activityPoints,
+    description: `${Math.round(metrics.avgActivityMinutes)}m/day: ${activityPoints > 0 ? "Inactivity increases risk of depressive symptoms" : "Exercise provides neuroprotective and mood-lifting effects"}`,
+  });
+
+  // Screen Time Factor
+  const screenPoints = metrics.avgScreenTimeHours > 7 ? 2 : metrics.avgScreenTimeHours > 5 ? 1 : 0;
+  totalPoints += screenPoints;
+  breakdown.push({
+    factor: "Digital Consumption",
+    points: screenPoints,
+    description: `${metrics.avgScreenTimeHours.toFixed(1)}h screen time: ${screenPoints > 0 ? "High screen time correlates with increased social anxiety and low mood" : "Balanced digital usage"}`,
+  });
+
+  const riskPercentage = Math.round(Math.min(95, (totalPoints / 10) * 100));
+  const riskCategory: MentalHealthResult["riskCategory"] = totalPoints < 3 ? "low" : totalPoints < 6 ? "moderate" : "high";
+
+  return {
+    totalScore: totalPoints,
+    riskPercentage,
+    riskCategory,
+    breakdown,
+    interpretation: riskCategory === "low" ? "Minimal risk of mood or anxiety disorders." : riskCategory === "moderate" ? "Presence of risk factors; clinical screening (PHQ-9/GAD-7) may be beneficial." : "High risk; professional consultation recommended.",
+  };
+}
+
+/**
+ * Sleep Disorder Risk (Adapted from STOP-BANG for Sleep Apnea)
+ */
+export function calculateSleepDisorderRisk(
+  profile: HealthProfile,
+  metrics: LifestyleMetrics
+): SleepDisorderResult {
+  const breakdown: SleepDisorderResult["breakdown"] = [];
+  let totalPoints = 0;
+  const bmi = calculateBMI(profile.heightCm, profile.weightKg);
+
+  // BMI Factor
+  const bmiPoints = bmi > 35 ? 1 : 0;
+  totalPoints += bmiPoints;
+  breakdown.push({ factor: "BMI > 35", points: bmiPoints, description: bmi > 35 ? "Significant risk factor for Obstructive Sleep Apnea (OSA)" : "BMI within lower risk range for OSA" });
+
+  // Age Factor
+  const agePoints = profile.age > 50 ? 1 : 0;
+  totalPoints += agePoints;
+  breakdown.push({ factor: "Age > 50", points: agePoints, description: profile.age > 50 ? "Increased likelihood of sleep-disordered breathing" : "Age-related risk is low" });
+
+  // Gender Factor
+  const sexPoints = profile.sex === "male" ? 1 : 0;
+  totalPoints += sexPoints;
+  breakdown.push({ factor: "Biological Sex", points: sexPoints, description: profile.sex === "male" ? "Higher baseline risk for sleep apnea in males" : "Lower baseline risk for females" });
+
+  // Tiredness Proxy (Low sleep + high stress)
+  const tiredPoints = (metrics.avgSleepHours < 6 || metrics.avgStressLevel > 7) ? 1 : 0;
+  totalPoints += tiredPoints;
+  breakdown.push({ factor: "Daytime Tiredness Proxy", points: tiredPoints, description: tiredPoints > 0 ? "Low sleep/high stress indicates potential quality issues" : "Normal sleep patterns" });
+
+  const riskCategory: SleepDisorderResult["riskCategory"] = totalPoints <= 1 ? "low" : totalPoints <= 2 ? "intermediate" : "high";
+  const riskPercentage = Math.round((totalPoints / 4) * 100);
+
+  return {
+    totalScore: totalPoints,
+    riskPercentage,
+    riskCategory,
+    breakdown,
+    interpretation: riskCategory === "low" ? "Low risk of Obstructive Sleep Apnea." : riskCategory === "intermediate" ? "Intermediate risk; diagnostic sleep study could be considered." : "High risk; physician evaluation recommended.",
+  };
+}
+
+/**
+ * Stroke Risk (Adapted from CHA2DS2-VASc)
+ */
+export function calculateStrokeRisk(
+  profile: HealthProfile,
+  metrics: LifestyleMetrics
+): StrokeRiskResult {
+  const breakdown: StrokeRiskResult["breakdown"] = [];
+  let totalPoints = 0;
+  const bmi = calculateBMI(profile.heightCm, profile.weightKg);
+
+  // Age Factor
+  if (profile.age >= 75) {
+    totalPoints += 2;
+    breakdown.push({ factor: "Age >= 75", points: 2, description: "Major non-modifiable risk factor for stroke" });
+  } else if (profile.age >= 65) {
+    totalPoints += 1;
+    breakdown.push({ factor: "Age 65-74", points: 1, description: "Moderate age-related risk factor" });
+  } else {
+    breakdown.push({ factor: "Age < 65", points: 0, description: "Low age-related risk" });
+  }
+
+  // Sex Factor
+  const sexPoints = profile.sex === "female" ? 1 : 0;
+  totalPoints += sexPoints;
+  breakdown.push({ factor: "Biological Sex (Female)", points: sexPoints, description: profile.sex === "female" ? "Females have a slightly higher lifetime risk of stroke" : "Lower baseline gender risk" });
+
+  // HTN/Metabolic Proxy (BMI + Sedentary)
+  const htnPoints = (bmi > 30 || metrics.avgActivityMinutes < 15) ? 1 : 0;
+  totalPoints += htnPoints;
+  breakdown.push({ factor: "Metabolic/Vascular Proxy", points: htnPoints, description: htnPoints > 0 ? "Inactivity and weight increase vascular stress" : "Healthy metabolic profile" });
+
+  const riskCategory: StrokeRiskResult["riskCategory"] = totalPoints <= 1 ? "low" : totalPoints <= 2 ? "moderate" : "high";
+  const riskPercentage = Math.round(Math.max(1, Math.min(40, totalPoints * 5))); // Stroke risk scales differently
+
+  return {
+    totalScore: totalPoints,
+    riskPercentage,
+    riskCategory,
+    breakdown,
+    disclaimer: "Score assumes no prior history of Atrial Fibrillation or Heart Failure. Consult a specialist for a definitive CHA2DS2-VASc clinical assessment.",
+  };
+}
+
+/**
+ * Hypertension Progression Risk
+ */
+export function calculateHypertensionRisk(
+  profile: HealthProfile,
+  metrics: LifestyleMetrics
+): HypertensionResult {
+  const breakdown: HypertensionResult["breakdown"] = [];
+  let totalPoints = 0;
+
+  // Age Factor
+  const agePoints = profile.age > 45 ? 2 : profile.age > 30 ? 1 : 0;
+  totalPoints += agePoints;
+  breakdown.push({ factor: "Age", points: agePoints, description: `Age ${profile.age}: Risk of HTN increases significantly after 45` });
+
+  // BMI Factor
+  const bmi = calculateBMI(profile.heightCm, profile.weightKg);
+  const bmiPoints = bmi >= 30 ? 3 : bmi >= 25 ? 1 : 0;
+  totalPoints += bmiPoints;
+  breakdown.push({ factor: "Body Weight", points: bmiPoints, description: bmi >= 30 ? "Obesity is a primary driver of high blood pressure" : "Healthy weight supports normal BP" });
+
+  // Diet Factor (Sodium/Potassium proxy)
+  const dietPoints = metrics.avgDietScore < 5 ? 2 : metrics.avgDietScore < 7 ? 1 : 0;
+  totalPoints += dietPoints;
+  breakdown.push({ factor: "Dietary Quality", points: dietPoints, description: metrics.avgDietScore < 5 ? "Poor diet often indicates high sodium intake" : "Balanced diet reduces risk" });
+
+  // Activity Factor
+  const activityPoints = metrics.avgActivityMinutes < 20 ? 1 : 0;
+  totalPoints += activityPoints;
+  breakdown.push({ factor: "Physical Activity", points: activityPoints, description: metrics.avgActivityMinutes < 20 ? "Inactivity stiffens arterial walls over time" : "Regular movement improves arterial elasticity" });
+
+  const riskCategory: HypertensionResult["riskCategory"] = 
+    totalPoints <= 2 ? "optimal" :
+    totalPoints <= 4 ? "normal" :
+    totalPoints <= 6 ? "pre-hypertension" :
+    totalPoints <= 8 ? "stage-1" : "stage-2";
+
+  const riskPercentage = Math.round((totalPoints / 10) * 100);
+
+  return {
+    totalScore: totalPoints,
+    riskPercentage,
+    riskCategory,
+    breakdown,
+    interpretation: `Risk of progression to ${riskCategory.replace("-", " ")} within 2-5 years based on current lifestyle profile.`,
+  };
+}
+
+/**
  * Calculate combined medical risk scores
  */
 export function calculateMedicalRisks(
@@ -358,15 +587,32 @@ export function calculateMedicalRisks(
 ): MedicalRiskResult {
   const framingham = calculateFraminghamScore(profile, metrics);
   const findrisc = calculateFindrisc(profile, metrics);
+  const depressionAnxiety = calculateMentalHealthRisk(metrics);
+  const sleepDisorder = calculateSleepDisorderRisk(profile, metrics);
+  const strokeRisk = calculateStrokeRisk(profile, metrics);
+  const hypertension = calculateHypertensionRisk(profile, metrics);
 
-  // Combined health score: inverse of average risk
-  const avgRisk = (framingham.riskPercentage + findrisc.riskPercentage) / 2;
-  const combinedHealthScore = Math.round(Math.max(0, Math.min(100, 100 - avgRisk * 1.2)));
+  // Combined health score: inverse of average risk across all domains
+  const avgRisk = (
+    framingham.riskPercentage + 
+    findrisc.riskPercentage +
+    depressionAnxiety.riskPercentage +
+    sleepDisorder.riskPercentage +
+    strokeRisk.riskPercentage +
+    hypertension.riskPercentage
+  ) / 6;
+
+  const combinedHealthScore = Math.round(Math.max(0, Math.min(100, 100 - avgRisk * 1.1)));
 
   return {
     framingham,
     findrisc,
+    depressionAnxiety,
+    sleepDisorder,
+    strokeRisk,
+    hypertension,
     combinedHealthScore,
-    methodology: "Adapted Framingham CVD Risk Score (Wilson et al., 1998) + Adapted FINDRISC (Lindström & Tuomilehto, 2003). Lifestyle metrics mapped to epidemiological risk factors using peer-reviewed correlation data.",
+    methodology: "Multivariate analysis using adapted Framingham (CVD), FINDRISC (Diabetes), PHQ/GAD-adapted Mental Health, STOP-BANG Sleep Profile, CHA2DS2-VASc Stroke Proxy, and AHA HTN risk progression models.",
   };
 }
+

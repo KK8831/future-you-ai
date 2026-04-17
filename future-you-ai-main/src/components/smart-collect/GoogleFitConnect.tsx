@@ -55,7 +55,7 @@ export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps
     const isStandardPort = currentPort === "8080" || currentPort === "5173" || currentPort === "";
 
     if (!isStandardPort) {
-      const redirectUri = window.location.origin;
+      const redirectUri = window.location.origin + "/";
       toast({
         title: "Port Mismatch Warning",
         description: `Google expects '${redirectUri}' to be authorized. If you see a mismatch error, please add this to your Google Cloud Console.`,
@@ -72,7 +72,7 @@ export function GoogleFitConnect({ userId, onDataSynced }: GoogleFitConnectProps
 
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: window.location.origin,
+      redirect_uri: window.location.origin + "/",
       response_type: "token",
       scope: SCOPES,
       include_granted_scopes: "true",
