@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -31,13 +32,25 @@ const Auth = () => {
 
   useEffect(() => {
     const checkOnboarding = async (user: User) => {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from("profiles")
-        .select("age, health_goals")
+        .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
       
-      if (!profile || !profile.age || !profile.health_goals || (Array.isArray(profile.health_goals) && profile.health_goals.length === 0)) {
+      // If the query fails or no profile exists, send to onboarding
+      if (error || !profile) {
+        navigate("/onboarding");
+        return;
+      }
+
+      // Check if user has completed onboarding (has age set)
+      const hasAge = profile.age !== null && profile.age !== undefined;
+      const hasHealthGoals = 'health_goals' in profile && 
+        profile.health_goals && 
+        (Array.isArray(profile.health_goals) ? (profile.health_goals as any[]).length > 0 : true);
+      
+      if (!hasAge) {
         navigate("/onboarding");
       } else {
         navigate("/dashboard");
@@ -242,7 +255,7 @@ const Auth = () => {
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     id="fullName"
                     type="text"

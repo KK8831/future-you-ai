@@ -373,7 +373,7 @@ export function FloatingChatbot() {
       const [profileRes, entriesRes] = await Promise.all([
         supabase
           .from("profiles")
-          .select("age, sex, height_cm, weight_kg, activity_level, health_goals")
+          .select("*")
           .eq("user_id", session.user.id)
           .single(),
         supabase
